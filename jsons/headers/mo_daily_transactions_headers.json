@@ -1,0 +1,100 @@
+[
+    {
+        "column_name": "mo_daily_transaction_id",
+        "data_type": "INTEGER",
+        "is_primary_key": true,
+        "is_nullable": true,
+        "default_value": null
+    },
+    {
+        "column_name": "department_id",
+        "data_type": "INTEGER",
+        "is_primary_key": false,
+        "is_nullable": false,
+        "default_value": null
+    },
+    {
+        "column_name": "department_name",
+        "data_type": "VARCHAR",
+        "is_primary_key": false,
+        "is_nullable": false,
+        "default_value": null
+    },
+    {
+        "column_name": "division_id",
+        "data_type": "INTEGER",
+        "is_primary_key": false,
+        "is_nullable": false,
+        "default_value": null
+    },
+    {
+        "column_name": "division_name",
+        "data_type": "VARCHAR",
+        "is_primary_key": false,
+        "is_nullable": false,
+        "default_value": null
+    },
+    {
+        "column_name": "workflow_status",
+        "data_type": "VARCHAR(50)",
+        "is_primary_key": false,
+        "is_nullable": false,
+        "default_value": "'APPROVED_DIRECTOR'"
+    },
+    {
+        "column_name": "approved_by",
+        "data_type": "VARCHAR",
+        "is_primary_key": false,
+        "is_nullable": true,
+        "default_value": null
+    },
+    {
+        "column_name": "approved_at",
+        "data_type": "DATETIME",
+        "is_primary_key": false,
+        "is_nullable": true,
+        "default_value": null
+    },
+    {
+        "column_name": "approved_status",
+        "data_type": "VARCHAR(8)",
+        "is_primary_key": false,
+        "is_nullable": false,
+        "default_value": null
+    },
+    {
+        "column_name": "approved_remark",
+        "data_type": "VARCHAR",
+        "is_primary_key": false,
+        "is_nullable": true,
+        "default_value": null
+    },
+    {
+        "column_name": "created_at",
+        "data_type": "DATETIME",
+        "is_primary_key": false,
+        "is_nullable": false,
+        "default_value": "CURRENT_TIMESTAMP"
+    },
+    {
+        "column_name": "updated_at",
+        "data_type": "DATETIME",
+        "is_primary_key": false,
+        "is_nullable": false,
+        "default_value": "CURRENT_TIMESTAMP"
+    },
+    {
+        "column_name": "created_by",
+        "data_type": "VARCHAR(6)",
+        "is_primary_key": false,
+        "is_nullable": false,
+        "default_value": null
+    },
+    {
+        "column_name": "updated_by",
+        "data_type": "VARCHAR(6)",
+        "is_primary_key": false,
+        "is_nullable": true,
+        "default_value": null
+    }
+]

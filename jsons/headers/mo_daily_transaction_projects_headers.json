@@ -1,0 +1,58 @@
+[
+    {
+        "column_name": "id",
+        "data_type": "INTEGER",
+        "is_primary_key": true,
+        "is_nullable": false,
+        "default_value": null
+    },
+    {
+        "column_name": "mo_daily_transaction_id",
+        "data_type": "INTEGER",
+        "is_primary_key": false,
+        "is_nullable": false,
+        "default_value": null
+    },
+    {
+        "column_name": "project_name",
+        "data_type": "VARCHAR(255)",
+        "is_primary_key": false,
+        "is_nullable": false,
+        "default_value": null
+    },
+    {
+        "column_name": "detail",
+        "data_type": "TEXT",
+        "is_primary_key": false,
+        "is_nullable": true,
+        "default_value": null
+    },
+    {
+        "column_name": "status",
+        "data_type": "VARCHAR(255)",
+        "is_primary_key": false,
+        "is_nullable": false,
+        "default_value": null
+    },
+    {
+        "column_name": "note",
+        "data_type": "TEXT",
+        "is_primary_key": false,
+        "is_nullable": true,
+        "default_value": null
+    },
+    {
+        "column_name": "created_at",
+        "data_type": "DATETIME",
+        "is_primary_key": false,
+        "is_nullable": false,
+        "default_value": "CURRENT_TIMESTAMP"
+    },
+    {
+        "column_name": "updated_at",
+        "data_type": "DATETIME",
+        "is_primary_key": false,
+        "is_nullable": false,
+        "default_value": "CURRENT_TIMESTAMP"
+    }
+]
