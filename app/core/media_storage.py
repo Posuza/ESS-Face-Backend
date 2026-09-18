@@ -19,28 +19,27 @@ def media_storage_root() -> Path:
 
 
 def normalize_face_image_key(stored_value: str) -> str:
-    """Return an environment-independent key from current or legacy data."""
+    """Return a canonical filename from current or legacy stored data."""
     filename = Path(stored_value.strip()).name
     if not filename or not _FACE_IMAGE_FILENAME.fullmatch(filename):
         raise ValueError("Invalid stored face image filename")
-    return f"{FACE_IMAGE_PREFIX}/{filename}"
+    return filename
 
 
 def face_image_key(employee_code: str) -> str:
     safe_code = re.sub(r"[^A-Za-z0-9_-]", "_", employee_code.strip())
     if not safe_code:
         raise ValueError("Employee code cannot produce a safe image filename")
-    return f"{FACE_IMAGE_PREFIX}/{safe_code}.jpeg"
+    return f"{safe_code}.jpeg"
 
 
 def resolve_face_image_path(stored_value: str) -> Path:
     root = media_storage_root()
-    image_key = normalize_face_image_key(stored_value)
-    filename = Path(image_key).name
+    filename = normalize_face_image_key(stored_value)
     image_path = (
         root / filename
         if root.name == FACE_IMAGE_PREFIX
-        else root / image_key
+        else root / FACE_IMAGE_PREFIX / filename
     ).resolve()
     try:
         image_path.relative_to(root)
