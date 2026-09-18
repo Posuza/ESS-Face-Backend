@@ -1,8 +1,9 @@
 from __future__ import annotations
 
 import logging
+import json
 
-from fastapi import HTTPException, Request, status
+from fastapi import status
 from sqlalchemy.exc import (
     DatabaseError,
     DataError,
@@ -12,7 +13,7 @@ from sqlalchemy.exc import (
     OperationalError,
 )
 from sqlalchemy.exc import TimeoutError as SQLTimeoutError
-from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.types import ASGIApp, Receive, Scope, Send
 
 from app.core.audit_logger import audit_logger
 from app.core.registries import (
@@ -25,7 +26,7 @@ from app.core.registries import (
 _logger = logging.getLogger(__name__)
 
 
-class DatabaseErrorMiddleware(BaseHTTPMiddleware):
+class DatabaseErrorMiddleware:
     """
     Middleware to catch database errors and convert to proper HTTP responses.
 
@@ -33,10 +34,15 @@ class DatabaseErrorMiddleware(BaseHTTPMiddleware):
     consistent error responses to the frontend.
     """
 
-    async def dispatch(self, request: Request, call_next):
+    def __init__(self, app: ASGIApp):
+        self.app = app
+
+    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+        if scope["type"] != "http":
+            await self.app(scope, receive, send)
+            return
         try:
-            response = await call_next(request)
-            return response
+            await self.app(scope, receive, send)
 
         except (OperationalError, InterfaceError, DBAPIError, DatabaseError) as e:
             # Database connection errors, timeouts, host blocked
@@ -49,10 +55,8 @@ class DatabaseErrorMiddleware(BaseHTTPMiddleware):
                     action="[DATABASE_ERROR_CONNECTION_FAILED] Database timeout during request",
                 )
 
-                raise HTTPException(
-                    status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-                    detail=DATABASE_ERROR_CONNECTION_FAILED,
-                )
+                await self._send_error(send, status.HTTP_503_SERVICE_UNAVAILABLE, DATABASE_ERROR_CONNECTION_FAILED)
+                return
 
             # Check if host is blocked (MySQL error 1129)
             if "1129" in error_msg or "blocked" in error_msg:
@@ -60,20 +64,16 @@ class DatabaseErrorMiddleware(BaseHTTPMiddleware):
                     action="[DATABASE_ERROR_HOST_BLOCKED] Host blocked by MySQL due to connection errors",
                 )
 
-                raise HTTPException(
-                    status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-                    detail=DATABASE_ERROR_HOST_BLOCKED,
-                )
+                await self._send_error(send, status.HTTP_503_SERVICE_UNAVAILABLE, DATABASE_ERROR_HOST_BLOCKED)
+                return
 
             # Generic connection error
             audit_logger.log(
                 action="[DATABASE_ERROR_CONNECTION_FAILED] Database connection failed",
             )
 
-            raise HTTPException(
-                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-                detail=DATABASE_ERROR_CONNECTION_FAILED,
-            )
+            await self._send_error(send, status.HTTP_503_SERVICE_UNAVAILABLE, DATABASE_ERROR_CONNECTION_FAILED)
+            return
 
         except IntegrityError as e:
             # Constraint violations (unique, foreign key, etc.)
@@ -85,20 +85,16 @@ class DatabaseErrorMiddleware(BaseHTTPMiddleware):
                     action="[ER_CLIENT_2004] Duplicate entry detected",
                 )
 
-                raise HTTPException(
-                    status_code=status.HTTP_409_CONFLICT,
-                    detail="Duplicate entry detected",
-                )
+                await self._send_error(send, status.HTTP_409_CONFLICT, "Duplicate entry detected")
+                return
 
             # Other integrity errors (foreign key, etc.)
             audit_logger.log(
                 action="[DATABASE_ERROR_DATA_CORRUPTION] Data integrity violation",
             )
 
-            raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail=DATABASE_ERROR_DATA_CORRUPTION,
-            )
+            await self._send_error(send, status.HTTP_500_INTERNAL_SERVER_ERROR, DATABASE_ERROR_DATA_CORRUPTION)
+            return
 
         except DataError:
             # Query errors, data type errors
@@ -106,10 +102,8 @@ class DatabaseErrorMiddleware(BaseHTTPMiddleware):
                 action="[DATABASE_ERROR_QUERY_ERROR] Database query execution failed",
             )
 
-            raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail=DATABASE_ERROR_QUERY_ERROR,
-            )
+            await self._send_error(send, status.HTTP_500_INTERNAL_SERVER_ERROR, DATABASE_ERROR_QUERY_ERROR)
+            return
 
         except SQLTimeoutError:
             # Explicit timeout errors
@@ -117,22 +111,20 @@ class DatabaseErrorMiddleware(BaseHTTPMiddleware):
                 action="[DATABASE_ERROR_CONNECTION_FAILED] Database operation timeout",
             )
 
-            raise HTTPException(
-                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-                detail=DATABASE_ERROR_CONNECTION_FAILED,
-            )
+            await self._send_error(send, status.HTTP_503_SERVICE_UNAVAILABLE, DATABASE_ERROR_CONNECTION_FAILED)
+            return
 
-        except HTTPException:
-            # Re-raise HTTP exceptions (already handled)
-            raise
-
-        except Exception as e:
-            # Catch any other unexpected errors
-            audit_logger.log(
-                action=f"[DATABASE_ERROR_QUERY_ERROR] Unexpected error: {str(e)[:100]}",
-            )
-
-            raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail=DATABASE_ERROR_QUERY_ERROR,
-            )
+    @staticmethod
+    async def _send_error(send: Send, status_code: int, detail: str) -> None:
+        body = json.dumps({"detail": detail}).encode("utf-8")
+        await send(
+            {
+                "type": "http.response.start",
+                "status": status_code,
+                "headers": [
+                    (b"content-type", b"application/json"),
+                    (b"content-length", str(len(body)).encode("ascii")),
+                ],
+            }
+        )
+        await send({"type": "http.response.body", "body": body})

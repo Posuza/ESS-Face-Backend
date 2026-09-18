@@ -4,7 +4,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.types import ASGIApp, Receive, Scope, Send
 
 from app import models as models  # noqa: F401
 from app.api.endpoints import api_router
@@ -14,13 +14,20 @@ from app.core.db.db_error_handler import DatabaseErrorMiddleware
 _logger = logging.getLogger(__name__)
 
 
-class AuditContextMiddleware(BaseHTTPMiddleware):
+class AuditContextMiddleware:
     """Provide request context to service-layer audit logging."""
 
-    async def dispatch(self, request: Request, call_next):
+    def __init__(self, app: ASGIApp):
+        self.app = app
+
+    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+        if scope["type"] != "http":
+            await self.app(scope, receive, send)
+            return
+        request = Request(scope, receive=receive)
         set_audit_context(request=request, user_name="anonymous")
         try:
-            return await call_next(request)
+            await self.app(scope, receive, send)
         finally:
             clear_audit_context()
 
