@@ -30,6 +30,7 @@ jsons/data/
 app1/
 ai1/
 Archive.zip
+tests/
 
 # Packaging and logs
 build/
