@@ -38,6 +38,8 @@ from app.models.employee_permissions import EmployeePermission
 from app.models.employees import Employee
 from app.models.roles import Role
 
+USER_MANAGER_EMPLOYEE_CODES = {"680708", "622057", "632070", "622062"}
+
 
 def _get_active_employee(db: Session, employee_code: str) -> Employee:
     """Look up an employee by code and verify the account is active.
@@ -99,6 +101,16 @@ def _get_employee_role(db: Session, employee_code: str) -> Optional[str]:
         return None
     role = db.query(Role).filter(Role.role_id == employee.role_id).first()
     return role.role_name if role else None
+
+
+def _normalize_role_name(role_name: str) -> str:
+    """Normalize database display names such as ``Super Admin`` for guards."""
+    return "_".join(role_name.strip().lower().replace("-", " ").split())
+
+
+def _employee_has_role(db: Session, employee_code: str, allowed_roles: set[str]) -> bool:
+    role_name = _get_employee_role(db, employee_code)
+    return bool(role_name and _normalize_role_name(role_name) in allowed_roles)
 
 
 def active_employee_required(func):
@@ -190,6 +202,7 @@ def roles_required(*allowed_roles):
     # Normalize: support both @roles_required("a", "b") and @roles_required(["a", "b"])
     if len(allowed_roles) == 1 and isinstance(allowed_roles[0], (list, tuple, set)):
         allowed_roles = tuple(allowed_roles[0])
+    normalized_allowed_roles = {_normalize_role_name(role) for role in allowed_roles}
 
     def decorator(func):
         @wraps(func)
@@ -207,8 +220,11 @@ def roles_required(*allowed_roles):
                     detail="Missing current_employee or db session",
                 )
 
-            role_name = _get_employee_role(db, current_employee.employee_code)
-            if not role_name or role_name not in allowed_roles:
+            if not _employee_has_role(
+                db,
+                current_employee.employee_code,
+                normalized_allowed_roles,
+            ):
                 audit_logger.log(
                     action=ACCESS_DENIED_ROLE,
                 )
@@ -222,6 +238,44 @@ def roles_required(*allowed_roles):
         return wrapper
 
     return decorator
+
+
+def admin_user_manager_required(func):
+    """Allow full admins plus selected employee codes to manage users."""
+
+    admin_roles = {"admin", "super_admin"}
+
+    @wraps(func)
+    async def wrapper(*args, **kwargs):
+        db = None
+        current_employee = kwargs.get("current_employee")
+
+        for value in kwargs.values():
+            if isinstance(value, Session):
+                db = value
+
+        if not current_employee or not db:
+            raise HTTPException(
+                status_code=500,
+                detail="Missing current_employee or db session",
+            )
+
+        employee_code = current_employee.employee_code
+        if (
+            employee_code not in USER_MANAGER_EMPLOYEE_CODES
+            and not _employee_has_role(db, employee_code, admin_roles)
+        ):
+            audit_logger.log(
+                action=ACCESS_DENIED_ROLE,
+            )
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="ไม่สามารถเข้าถึงได้ คุณไม่มีสิทธิ์เข้าถึงข้อมูลนี้ โปรดติดต่อ GutsEssCenter",
+            )
+
+        return await func(*args, **kwargs)
+
+    return wrapper
 
 
 # ═══════════════════════════════════════════════════════════════════════

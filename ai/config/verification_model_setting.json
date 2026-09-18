@@ -1,0 +1,644 @@
+{
+  "model_schemas": {
+    "backend_models": [
+      {
+        "id": 1,
+        "model_key": "scrfd_detector",
+        "model_name": "SCRFD Face Detector",
+        "model_role": "face_detection",
+        "active": true,
+        "default_active": true,
+        "settings_values": {
+          "score_threshold": {
+            "value": 0.5,
+            "default": 0.5,
+            "min": 0,
+            "max": 1,
+            "step": 0.01
+          },
+          "nms_threshold": {
+            "value": 0.4,
+            "default": 0.4,
+            "min": 0,
+            "max": 1,
+            "step": 0.01
+          }
+        }
+      },
+      {
+        "id": 2,
+        "model_key": "arcface_recognizer",
+        "model_name": "ArcFace Recognizer",
+        "model_role": "face_recognition",
+        "active": true,
+        "default_active": true,
+        "settings_values": {
+          "cosine_threshold": {
+            "value": 0.42,
+            "default": 0.42,
+            "min": -1,
+            "max": 1,
+            "step": 0.01
+          }
+        }
+      },
+      {
+        "id": 3,
+        "model_key": "backend_face_attrib",
+        "model_name": "Backend FaceAttribNet",
+        "model_role": "face_compliance",
+        "active": true,
+        "default_active": true,
+        "settings_values": {
+          "glasses_threshold": {
+            "value": 0.05,
+            "default": 0.05,
+            "min": 0,
+            "max": 1,
+            "step": 0.01
+          },
+          "mask_threshold": {
+            "value": 0.35,
+            "default": 0.35,
+            "min": 0,
+            "max": 1,
+            "step": 0.01
+          },
+          "sunglasses_threshold": {
+            "value": 0.25,
+            "default": 0.25,
+            "min": 0,
+            "max": 1,
+            "step": 0.01
+          },
+          "minimum_eye_openness": {
+            "value": 0.25,
+            "default": 0.25,
+            "min": 0,
+            "max": 1,
+            "step": 0.01
+          }
+        }
+      },
+      {
+        "id": 8,
+        "model_key": "backend_image_quality",
+        "model_name": "Backend Image Quality",
+        "model_role": "image_quality",
+        "active": true,
+        "default_active": true,
+        "settings_values": {
+          "min_brightness": {
+            "value": 50,
+            "default": 50,
+            "min": 0,
+            "max": 255,
+            "step": 1
+          },
+          "max_brightness": {
+            "value": 215,
+            "default": 215,
+            "min": 0,
+            "max": 255,
+            "step": 1
+          },
+          "min_blur_score": {
+            "value": 55,
+            "default": 55,
+            "min": 0,
+            "max": 500,
+            "step": 1
+          },
+          "min_face_area_ratio": {
+            "value": 0.035,
+            "default": 0.035,
+            "min": 0.005,
+            "max": 0.2,
+            "step": 0.005
+          }
+        }
+      }
+    ],
+    "frontend_models": [
+      {
+        "id": 9,
+        "model_key": "face_detector",
+        "model_name": "MediaPipe Face Detector",
+        "model_role": "face_detection",
+        "active": true,
+        "default_active": true,
+        "settings_values": {
+          "require_feature_target_alignment": {
+            "value": 1,
+            "default": 1,
+            "min": 0,
+            "max": 1,
+            "step": 1
+          },
+          "require_eye_alignment": {
+            "value": 1,
+            "default": 1,
+            "min": 0,
+            "max": 1,
+            "step": 1
+          },
+          "require_nose_zone": {
+            "value": 1,
+            "default": 1,
+            "min": 0,
+            "max": 1,
+            "step": 1
+          },
+          "require_mouth_zone": {
+            "value": 1,
+            "default": 1,
+            "min": 0,
+            "max": 1,
+            "step": 1
+          },
+          "min_average_brightness": {
+            "value": 35,
+            "default": 58,
+            "min": 0,
+            "max": 255,
+            "step": 1
+          },
+          "max_average_brightness": {
+            "value": 225,
+            "default": 214,
+            "min": 0,
+            "max": 255,
+            "step": 1
+          },
+          "max_dark_pixel_ratio": {
+            "value": 0.48,
+            "default": 0.48,
+            "min": 0,
+            "max": 1,
+            "step": 0.01
+          },
+          "max_bright_pixel_ratio": {
+            "value": 0.42,
+            "default": 0.42,
+            "min": 0,
+            "max": 1,
+            "step": 0.01
+          },
+          "eye_center_x_tolerance": {
+            "value": 10,
+            "default": 10,
+            "min": 0,
+            "max": 40,
+            "step": 1
+          },
+          "eye_center_y_tolerance": {
+            "value": 9,
+            "default": 8,
+            "min": 0,
+            "max": 40,
+            "step": 1
+          },
+          "min_eye_distance": {
+            "value": 56,
+            "default": 56,
+            "min": 20,
+            "max": 120,
+            "step": 1
+          },
+          "max_eye_distance": {
+            "value": 84,
+            "default": 89,
+            "min": 40,
+            "max": 160,
+            "step": 1
+          },
+          "min_face_guide_height": {
+            "value": 152,
+            "default": 164,
+            "min": 80,
+            "max": 260,
+            "step": 1
+          },
+          "max_face_guide_height": {
+            "value": 210,
+            "default": 199,
+            "min": 100,
+            "max": 300,
+            "step": 1
+          },
+          "guide_boundary_tolerance": {
+            "value": 1.16,
+            "default": 1.16,
+            "min": 0.8,
+            "max": 1.5,
+            "step": 0.01
+          },
+          "nose_x_ratio_max": {
+            "value": 0.34,
+            "default": 0.2,
+            "min": 0,
+            "max": 0.6,
+            "step": 0.01
+          },
+          "min_nose_below_eyes_ratio": {
+            "value": 0.12,
+            "default": 0.3,
+            "min": 0,
+            "max": 1,
+            "step": 0.01
+          },
+          "max_nose_below_eyes_ratio": {
+            "value": 1.2,
+            "default": 1,
+            "min": 0.3,
+            "max": 1.8,
+            "step": 0.01
+          },
+          "mouth_x_ratio_max": {
+            "value": 0.5,
+            "default": 0.25,
+            "min": 0,
+            "max": 0.8,
+            "step": 0.01
+          },
+          "min_mouth_below_nose_ratio": {
+            "value": 0.12,
+            "default": 0.1,
+            "min": 0,
+            "max": 0.8,
+            "step": 0.01
+          },
+          "max_mouth_below_nose_ratio": {
+            "value": 1.15,
+            "default": 0.8,
+            "min": 0.2,
+            "max": 1.5,
+            "step": 0.01
+          },
+          "landmark_eye_tilt_max": {
+            "value": 0.14,
+            "default": 0.09,
+            "min": 0,
+            "max": 0.3,
+            "step": 0.01
+          },
+          "landmark_nose_x_ratio_max": {
+            "value": 0.24,
+            "default": 0.14,
+            "min": 0,
+            "max": 0.5,
+            "step": 0.01
+          },
+          "capture_ready_eye_center_x_tolerance": {
+            "value": 2,
+            "default": 8,
+            "min": 0,
+            "max": 40,
+            "step": 1
+          },
+          "capture_ready_eye_center_y_tolerance": {
+            "value": 2,
+            "default": 6,
+            "min": 0,
+            "max": 40,
+            "step": 1
+          },
+          "capture_ready_min_eye_distance": {
+            "value": 60,
+            "default": 56,
+            "min": 20,
+            "max": 120,
+            "step": 1
+          },
+          "capture_ready_max_eye_distance": {
+            "value": 80,
+            "default": 88,
+            "min": 40,
+            "max": 160,
+            "step": 1
+          },
+          "max_capture_ready_center_shift_ratio": {
+            "value": 0.01,
+            "default": 0.02,
+            "min": 0,
+            "max": 0.2,
+            "step": 0.005
+          },
+          "max_capture_ready_eye_distance_ratio": {
+            "value": 0.01,
+            "default": 0.02,
+            "min": 0,
+            "max": 0.2,
+            "step": 0.005
+          },
+          "capture_ready_lock_hold_ms": {
+            "value": 800,
+            "default": 800,
+            "min": 0,
+            "max": 3000,
+            "step": 100
+          },
+          "max_stable_face_movement": {
+            "value": 2.4,
+            "default": 3.2,
+            "min": 0,
+            "max": 10,
+            "step": 0.1
+          },
+          "max_capture_ready_face_movement": {
+            "value": 0.8,
+            "default": 1.4,
+            "min": 0,
+            "max": 10,
+            "step": 0.1
+          },
+          "max_capture_ready_eye_distance_change": {
+            "value": 0.5,
+            "default": 4,
+            "min": 0,
+            "max": 30,
+            "step": 0.5
+          }
+        }
+      },
+      {
+        "id": 4,
+        "model_key": "face_landmarker",
+        "model_name": "MediaPipe Face Landmarker",
+        "model_role": "face_landmarks",
+        "active": true,
+        "default_active": true,
+        "settings_values": {
+          "require_feature_target_alignment": {
+            "value": 1,
+            "default": 1,
+            "min": 0,
+            "max": 1,
+            "step": 1
+          },
+          "require_eye_alignment": {
+            "value": 1,
+            "default": 1,
+            "min": 0,
+            "max": 1,
+            "step": 1
+          },
+          "require_nose_zone": {
+            "value": 1,
+            "default": 1,
+            "min": 0,
+            "max": 1,
+            "step": 1
+          },
+          "require_mouth_zone": {
+            "value": 1,
+            "default": 1,
+            "min": 0,
+            "max": 1,
+            "step": 1
+          },
+          "show_debug_markers": {
+            "value": 0,
+            "default": 0,
+            "min": 0,
+            "max": 1,
+            "step": 1
+          },
+          "min_average_brightness": {
+            "value": 44,
+            "default": 58,
+            "min": 0,
+            "max": 255,
+            "step": 1
+          },
+          "max_average_brightness": {
+            "value": 217,
+            "default": 214,
+            "min": 0,
+            "max": 255,
+            "step": 1
+          },
+          "max_dark_pixel_ratio": {
+            "value": 0.48,
+            "default": 0.48,
+            "min": 0,
+            "max": 1,
+            "step": 0.01
+          },
+          "max_bright_pixel_ratio": {
+            "value": 0.42,
+            "default": 0.42,
+            "min": 0,
+            "max": 1,
+            "step": 0.01
+          },
+          "eye_center_x_tolerance": {
+            "value": 14,
+            "default": 10,
+            "min": 0,
+            "max": 40,
+            "step": 1
+          },
+          "eye_center_y_tolerance": {
+            "value": 8,
+            "default": 8,
+            "min": 0,
+            "max": 40,
+            "step": 1
+          },
+          "min_eye_distance": {
+            "value": 52,
+            "default": 56,
+            "min": 20,
+            "max": 120,
+            "step": 1
+          },
+          "max_eye_distance": {
+            "value": 88,
+            "default": 89,
+            "min": 40,
+            "max": 160,
+            "step": 1
+          },
+          "min_face_guide_height": {
+            "value": 159,
+            "default": 164,
+            "min": 80,
+            "max": 260,
+            "step": 1
+          },
+          "max_face_guide_height": {
+            "value": 183,
+            "default": 199,
+            "min": 100,
+            "max": 300,
+            "step": 1
+          },
+          "guide_boundary_tolerance": {
+            "value": 1.08,
+            "default": 1.16,
+            "min": 0.8,
+            "max": 1.5,
+            "step": 0.01
+          },
+          "nose_x_ratio_max": {
+            "value": 0.21,
+            "default": 0.2,
+            "min": 0,
+            "max": 0.6,
+            "step": 0.01
+          },
+          "min_nose_below_eyes_ratio": {
+            "value": 0.23,
+            "default": 0.3,
+            "min": 0,
+            "max": 1,
+            "step": 0.01
+          },
+          "max_nose_below_eyes_ratio": {
+            "value": 0.91,
+            "default": 1,
+            "min": 0.3,
+            "max": 1.8,
+            "step": 0.01
+          },
+          "mouth_x_ratio_max": {
+            "value": 0.33,
+            "default": 0.25,
+            "min": 0,
+            "max": 0.8,
+            "step": 0.01
+          },
+          "min_mouth_below_nose_ratio": {
+            "value": 0.28,
+            "default": 0.1,
+            "min": 0,
+            "max": 0.8,
+            "step": 0.01
+          },
+          "max_mouth_below_nose_ratio": {
+            "value": 0.9,
+            "default": 0.8,
+            "min": 0.2,
+            "max": 1.5,
+            "step": 0.01
+          },
+          "landmark_eye_tilt_max": {
+            "value": 0.09,
+            "default": 0.09,
+            "min": 0,
+            "max": 0.3,
+            "step": 0.01
+          },
+          "landmark_nose_x_ratio_max": {
+            "value": 0.14,
+            "default": 0.14,
+            "min": 0,
+            "max": 0.5,
+            "step": 0.01
+          }
+        }
+      },
+      {
+        "id": 5,
+        "model_key": "tiny_compliance_v3",
+        "model_name": "Tiny Compliance v3",
+        "model_role": "face_compliance",
+        "active": false,
+        "default_active": true,
+        "settings_values": {
+          "eyewear_threshold": {
+            "value": 0.3,
+            "default": 0.5,
+            "min": 0,
+            "max": 1,
+            "step": 0.01
+          },
+          "eyes_occluded_threshold": {
+            "value": 0.25,
+            "default": 0.72,
+            "min": 0,
+            "max": 1,
+            "step": 0.01
+          },
+          "nose_occluded_threshold": {
+            "value": 0.4,
+            "default": 0.5,
+            "min": 0,
+            "max": 1,
+            "step": 0.01
+          },
+          "mouth_occluded_threshold": {
+            "value": 0.3,
+            "default": 0.5,
+            "min": 0,
+            "max": 1,
+            "step": 0.01
+          }
+        }
+      },
+      {
+        "id": 6,
+        "model_key": "face_attrib_legacy",
+        "model_name": "Frontend FaceAttribNet Legacy",
+        "model_role": "face_compliance",
+        "active": true,
+        "default_active": false,
+        "settings_values": {
+          "glasses_threshold": {
+            "value": 0.05,
+            "default": 0.05,
+            "min": 0,
+            "max": 1,
+            "step": 0.01
+          },
+          "mask_threshold": {
+            "value": 0.35,
+            "default": 0.35,
+            "min": 0,
+            "max": 1,
+            "step": 0.01
+          },
+          "sunglasses_threshold": {
+            "value": 0.25,
+            "default": 0.25,
+            "min": 0,
+            "max": 1,
+            "step": 0.01
+          },
+          "minimum_eye_openness": {
+            "value": 0.25,
+            "default": 0.25,
+            "min": 0,
+            "max": 1,
+            "step": 0.01
+          }
+        }
+      },
+      {
+        "id": 7,
+        "model_key": "minifasnet_v2",
+        "model_name": "MiniFASNet V2",
+        "model_role": "anti_spoof",
+        "active": true,
+        "default_active": true,
+        "settings_values": {
+          "real_score_threshold": {
+            "value": 0.55,
+            "default": 0.55,
+            "min": 0,
+            "max": 1,
+            "step": 0.01
+          },
+          "required_samples": {
+            "value": 3,
+            "default": 3,
+            "min": 1,
+            "max": 10,
+            "step": 1
+          }
+        }
+      }
+    ]
+  }
+}

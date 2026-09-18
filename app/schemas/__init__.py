@@ -8,9 +8,8 @@ from . import (
     districts,
     employee_permissions,
     employees,
+    face_verify,
     fields,
-    mo_daily_transactions,
-    mo_report_export,
     name_prefixs,
     position_change_logs,
     positions,
@@ -18,7 +17,6 @@ from . import (
     provinces,
     routes,
     sub_districts,
-    mo_workplace,
 )
 
 __all__ = [
@@ -29,9 +27,8 @@ __all__ = [
     "districts",
     "employee_permissions",
     "employees",
+    "face_verify",
     "fields",
-    "mo_daily_transactions",
-    "mo_report_export",
     "name_prefixs",
     "position_change_logs",
     "positions",
@@ -39,5 +36,4 @@ __all__ = [
     "provinces",
     "routes",
     "sub_districts",
-    "mo_workplace",
 ]

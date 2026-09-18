@@ -26,6 +26,11 @@ exports/
 tmp/
 jsons/data/
 
+# Local duplicate/backup artifacts
+app1/
+ai1/
+Archive.zip
+
 # Packaging and logs
 build/
 dist/

@@ -80,15 +80,6 @@ from app.core.registries.database_message import (
     DATABASE_ERROR_HOST_BLOCKED,
     DATABASE_ERROR_QUERY_ERROR,
 )
-from app.core.registries.service.mo_audit_message import (
-    MO_REPORT_APPROVED,
-    MO_REPORT_CREATED,
-    MO_REPORT_DELETED,
-    MO_REPORT_NOT_FOUND,
-    MO_REPORT_REJECTED,
-    MO_REPORT_UPDATE_DENIED,
-    MO_REPORT_UPDATED,
-)
 from app.core.registries.service.email_message import (
     AUTH_ERROR_NO_EMAIL_REGISTERED,
     EMAIL_SEND_ATTEMPT,
@@ -157,13 +148,6 @@ __all__ = [
     "LOGOUT_ATTEMPT",
     "LOGOUT_FAILED",
     "LOGOUT_SUCCESS",
-    "MO_REPORT_APPROVED",
-    "MO_REPORT_UPDATE_DENIED",
-    "MO_REPORT_CREATED",
-    "MO_REPORT_DELETED",
-    "MO_REPORT_NOT_FOUND",
-    "MO_REPORT_REJECTED",
-    "MO_REPORT_UPDATED",
     "EMAIL_SEND_ATTEMPT",
     "EMAIL_SEND_SUCCESS",
     "EMAIL_SEND_FAILED",

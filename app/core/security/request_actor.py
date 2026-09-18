@@ -4,7 +4,7 @@ import re
 
 from fastapi import HTTPException, Request
 
-EMPLOYEE_CODE_PATTERN = re.compile(r"^\d{6}$")
+EMPLOYEE_CODE_PATTERN = re.compile(r"^[A-Za-z0-9]{6}$")
 
 
 def extract_actor_employee_code(request: Request) -> str:
