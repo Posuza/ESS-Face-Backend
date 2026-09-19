@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session
 
 from app.core.audit_logger import audit_logger
 from app.core.media_storage import (
+    media_storage_root,
     normalize_face_image_key,
     resolve_face_image_path,
 )
@@ -63,7 +64,9 @@ def _serialize_employee(db: Session, employee: Employee) -> dict:
     face_profile_location = None
     if employee.profile_image_path:
         try:
-            face_profile_location = normalize_face_image_key(employee.profile_image_path)
+            folder = media_storage_root().name
+            filename = normalize_face_image_key(employee.profile_image_path)
+            face_profile_location = f"/{folder}/{filename}" if folder else filename
         except ValueError:
             face_profile_location = None
     return {
