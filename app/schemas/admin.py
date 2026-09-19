@@ -79,6 +79,7 @@ class AdminEmployeeResponse(BaseModel):
     start_date: date | None = None
     leave_date: date | None = None
     has_face_profile: bool
+    face_profile_location: str | None = None
     profile_image_updated_at: datetime | None = None
     created_at: datetime | None = None
     updated_at: datetime | None = None

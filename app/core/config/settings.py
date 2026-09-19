@@ -9,7 +9,7 @@ from pydantic import Field
 from pydantic_settings import BaseSettings
 
 
-BACKEND_ROOT = Path(__file__).resolve().parents[2]
+BACKEND_ROOT = Path(__file__).resolve().parents[3]
 ENV_FILE = BACKEND_ROOT / ".env"
 
 # Load the backend's environment file regardless of the process working directory.
@@ -48,6 +48,10 @@ class Settings(BaseSettings):
     # Media storage. Relative paths are resolved from the backend project root.
     MEDIA_STORAGE_PATH: Path = Field(default=Path("storage/development"))
 
+    # Face verification retry policy
+    FACE_VERIFY_MAX_ATTEMPTS: int = Field(default=5)
+    FACE_VERIFY_WINDOW_SECONDS: int = Field(default=60)
+
     @property
     def access_token_expire_timedelta(self) -> timedelta:
         return timedelta(minutes=self.ACCESS_TOKEN_EXPIRE_MINUTES)
@@ -56,6 +60,7 @@ class Settings(BaseSettings):
         env_file = ENV_FILE
         env_file_encoding = "utf-8"
         extra = "ignore"
+
 
 @lru_cache()
 def get_settings() -> Settings:

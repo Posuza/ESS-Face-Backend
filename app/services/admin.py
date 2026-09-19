@@ -7,7 +7,24 @@ from sqlalchemy import func, or_, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from app.core.media_storage import resolve_face_image_path
+from app.core.audit_logger import audit_logger
+from app.core.media_storage import (
+    normalize_face_image_key,
+    resolve_face_image_path,
+)
+from app.core.registries import (
+    ADMIN_EMPLOYEE_CREATE_SUCCESS,
+    ADMIN_EMPLOYEE_DELETE_SUCCESS,
+    ADMIN_EMPLOYEE_PASSWORD_RESET_SUCCESS,
+    ADMIN_EMPLOYEE_UPDATE_SUCCESS,
+    ADMIN_ERROR_DELETE_SELF,
+    ADMIN_ERROR_EMPLOYEE_CODE_EXISTS,
+    ADMIN_ERROR_EMPLOYEE_DATA_CONFLICT,
+    ADMIN_ERROR_EMPLOYEE_NOT_FOUND,
+    ADMIN_ERROR_EMPLOYEE_REFERENCED,
+    ADMIN_ERROR_FACE_PROFILE_NOT_FOUND,
+    ADMIN_FACE_PROFILE_DELETE_SUCCESS,
+)
 from app.models.departments import Department
 from app.models.divisions import Division
 from app.models.employees import Employee
@@ -25,7 +42,7 @@ def _employee_or_404(db: Session, employee_code: str) -> Employee:
         select(Employee).where(Employee.employee_code == employee_code.strip())
     )
     if employee is None:
-        raise HTTPException(status_code=404, detail="Employee not found")
+        raise HTTPException(status_code=404, detail=ADMIN_ERROR_EMPLOYEE_NOT_FOUND)
     return employee
 
 
@@ -43,6 +60,12 @@ def _optional_int(value: object) -> int | None:
 def _serialize_employee(db: Session, employee: Employee) -> dict:
     role_names = _lookup_map(db, Role, Role.role_id, Role.role_name)
     prefix_names = _lookup_map(db, NamePrefix, NamePrefix.prefix_id, NamePrefix.prefix_name)
+    face_profile_location = None
+    if employee.profile_image_path:
+        try:
+            face_profile_location = normalize_face_image_key(employee.profile_image_path)
+        except ValueError:
+            face_profile_location = None
     return {
         "employee_code": employee.employee_code,
         "role_id": employee.role_id,
@@ -65,6 +88,7 @@ def _serialize_employee(db: Session, employee: Employee) -> dict:
         "start_date": employee.start_date,
         "leave_date": employee.leave_date,
         "has_face_profile": bool(employee.profile_image_path),
+        "face_profile_location": face_profile_location,
         "profile_image_updated_at": employee.profile_image_updated_at,
         "created_at": employee.created_at,
         "updated_at": employee.updated_at,
@@ -118,7 +142,7 @@ class AdminEmployeeService:
     def create_employee(db: Session, payload: AdminEmployeeCreate, actor_code: str) -> dict:
         code = payload.employee_code.upper()
         if db.get(Employee, code) is not None:
-            raise HTTPException(status_code=409, detail="Employee code already exists")
+            raise HTTPException(status_code=409, detail=ADMIN_ERROR_EMPLOYEE_CODE_EXISTS)
         values = payload.model_dump()
         values["employee_code"] = code
         values["created_by"] = actor_code
@@ -129,8 +153,11 @@ class AdminEmployeeService:
             db.commit()
         except IntegrityError as exc:
             db.rollback()
-            raise HTTPException(status_code=409, detail="Employee data conflicts with existing records") from exc
+            raise HTTPException(status_code=409, detail=ADMIN_ERROR_EMPLOYEE_DATA_CONFLICT) from exc
         db.refresh(employee)
+        audit_logger.log(
+            action=ADMIN_EMPLOYEE_CREATE_SUCCESS.format(employee_code=employee.employee_code)
+        )
         return _serialize_employee(db, employee)
 
     @staticmethod
@@ -148,8 +175,11 @@ class AdminEmployeeService:
             db.commit()
         except IntegrityError as exc:
             db.rollback()
-            raise HTTPException(status_code=409, detail="Employee data conflicts with existing records") from exc
+            raise HTTPException(status_code=409, detail=ADMIN_ERROR_EMPLOYEE_DATA_CONFLICT) from exc
         db.refresh(employee)
+        audit_logger.log(
+            action=ADMIN_EMPLOYEE_UPDATE_SUCCESS.format(employee_code=employee.employee_code)
+        )
         return _serialize_employee(db, employee)
 
     @staticmethod
@@ -158,11 +188,16 @@ class AdminEmployeeService:
         employee.password = password
         employee.updated_by = actor_code
         db.commit()
+        audit_logger.log(
+            action=ADMIN_EMPLOYEE_PASSWORD_RESET_SUCCESS.format(
+                employee_code=employee.employee_code
+            )
+        )
 
     @staticmethod
     def delete_employee(db: Session, employee_code: str, actor_code: str) -> None:
         if employee_code == actor_code:
-            raise HTTPException(status_code=409, detail="You cannot delete your own admin account")
+            raise HTTPException(status_code=409, detail=ADMIN_ERROR_DELETE_SELF)
         employee = _employee_or_404(db, employee_code)
         image_path: Path | None = None
         if employee.profile_image_path:
@@ -177,16 +212,19 @@ class AdminEmployeeService:
             db.rollback()
             raise HTTPException(
                 status_code=409,
-                detail="This employee is referenced by other records. Deactivate the account instead.",
+                detail=ADMIN_ERROR_EMPLOYEE_REFERENCED,
             ) from exc
         if image_path is not None:
             image_path.unlink(missing_ok=True)
+        audit_logger.log(
+            action=ADMIN_EMPLOYEE_DELETE_SUCCESS.format(employee_code=employee_code)
+        )
 
     @staticmethod
     def delete_face_profile(db: Session, employee_code: str, actor_code: str) -> None:
         employee = _employee_or_404(db, employee_code)
         if not employee.profile_image_path:
-            raise HTTPException(status_code=404, detail="Employee has no face profile")
+            raise HTTPException(status_code=404, detail=ADMIN_ERROR_FACE_PROFILE_NOT_FOUND)
         try:
             image_path = resolve_face_image_path(employee.profile_image_path)
         except ValueError:
@@ -197,6 +235,9 @@ class AdminEmployeeService:
         db.commit()
         if image_path is not None:
             image_path.unlink(missing_ok=True)
+        audit_logger.log(
+            action=ADMIN_FACE_PROFILE_DELETE_SUCCESS.format(employee_code=employee_code)
+        )
 
     @staticmethod
     def options(db: Session) -> dict:

@@ -9,8 +9,9 @@ from app.api.dependencies import (
     admin_user_manager_required,
     roles_required,
 )
+from app.core.audit_logger import audit_logger
 from app.core.db.session import get_db
-from app.core.model_settings import (
+from app.services.model_settings import (
     get_frontend_model_settings,
     get_model_settings,
     reset_model_settings,
@@ -27,6 +28,7 @@ from app.schemas.admin import (
     ModelSettingsUpdate,
 )
 from app.schemas.face_verify import FaceEnrollRequest, FaceEnrollResponse
+from app.core.registries import ADMIN_FACE_PROFILE_REPLACE_SUCCESS
 from app.services.admin import admin_employee_service
 from app.services.face_verify import face_verify_service
 
@@ -164,6 +166,9 @@ async def replace_user_face_profile(
         created_by=current_employee.employee_code,
     )
     employee = face_verify_service.enroll_face(db, request)
+    audit_logger.log(
+        action=ADMIN_FACE_PROFILE_REPLACE_SUCCESS.format(employee_code=employee_code)
+    )
     return FaceEnrollResponse.model_validate(employee)
 
 

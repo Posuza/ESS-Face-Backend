@@ -15,12 +15,33 @@ from PIL import Image, ImageOps
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.core.face_constants import FaceConstants
-from app.core.model_settings import get_model_value, is_model_active
+from app.core.config import settings
+from app.core.config.model_settings import (
+    get_backend_model_input_size,
+    get_backend_model_path,
+    get_required_model_value,
+    is_model_active,
+)
+from app.core.audit_logger import audit_logger
 from app.core.media_storage import (
     face_image_key,
     normalize_face_image_key,
     resolve_face_image_path,
+)
+from app.core.registries import (
+    FACE_ENROLL_ATTEMPT,
+    FACE_ENROLL_SUCCESS,
+    FACE_ERROR_ACCOUNT_INACTIVE,
+    FACE_ERROR_EMPLOYEE_NOT_FOUND,
+    FACE_ERROR_INVALID_IMAGE_LOCATION,
+    FACE_ERROR_NO_REFERENCE_IMAGE,
+    FACE_ERROR_REFERENCE_IMAGE_NOT_FOUND,
+    FACE_LOOKUP_ATTEMPT,
+    FACE_LOOKUP_SUCCESS,
+    FACE_PROFILE_IMAGE_VIEW_SUCCESS,
+    FACE_VERIFY_ATTEMPT,
+    FACE_VERIFY_FAILED,
+    FACE_VERIFY_SUCCESS,
 )
 from app.models.employees import Employee
 from app.schemas.face_verify import FaceEnrollRequest, FaceVerifyRequest
@@ -82,16 +103,16 @@ def _session(path: str, kind: str) -> ort.InferenceSession:
 
 
 def _detector() -> ort.InferenceSession:
-    return _session(FaceConstants.FACE_DETECTOR_MODEL, "face detector")
+    return _session(str(get_backend_model_path("scrfd_detector")), "face detector")
 
 
 def _recognizer() -> ort.InferenceSession:
-    return _session(FaceConstants.FACE_RECOGNIZER_MODEL, "face recognizer")
+    return _session(str(get_backend_model_path("arcface_recognizer")), "face recognizer")
 
 
 def _attribute_classifier() -> ort.InferenceSession:
     return _session(
-        FaceConstants.FACE_ATTRIBUTE_MODEL, "face attribute classifier"
+        str(get_backend_model_path("backend_face_attrib")), "face attribute classifier"
     )
 
 
@@ -100,9 +121,9 @@ def _rate(code: str) -> None:
     attempts = [
         t
         for t in _attempts.get(code, [])
-        if t > now - FaceConstants.VERIFY_WINDOW_SECONDS
+        if t > now - settings.FACE_VERIFY_WINDOW_SECONDS
     ]
-    if len(attempts) >= FaceConstants.VERIFY_MAX_ATTEMPTS:
+    if len(attempts) >= settings.FACE_VERIFY_MAX_ATTEMPTS:
         raise HTTPException(
             status_code=429,
             detail="พยายามยืนยันใบหน้าบ่อยเกินไป กรุณารอสักครู่แล้วลองใหม่",
@@ -157,13 +178,12 @@ def _blur_score(gray: np.ndarray) -> float:
     return float(np.var(lap))
 
 
-def _mode_quality_value(mode: str, key: str, fallback: float) -> float:
+def _mode_quality_value(mode: str, key: str) -> float:
     return float(
-        get_model_value(
+        get_required_model_value(
             "backend_models",
             "backend_image_quality",
             key,
-            fallback,
             mode=mode,
         )
     )
@@ -178,9 +198,9 @@ def _quality(image: Image.Image, mode: str = "verify") -> None:
     brightness = float(gray.mean())
     blur = _blur_score(gray)
 
-    min_brightness = _mode_quality_value(mode, "min_brightness", FaceConstants.MIN_BRIGHTNESS)
-    max_brightness = _mode_quality_value(mode, "max_brightness", FaceConstants.MAX_BRIGHTNESS)
-    min_blur = _mode_quality_value(mode, "min_blur_score", FaceConstants.MIN_BLUR_SCORE)
+    min_brightness = _mode_quality_value(mode, "min_brightness")
+    max_brightness = _mode_quality_value(mode, "max_brightness")
+    min_blur = _mode_quality_value(mode, "min_blur_score")
 
     if brightness < min_brightness:
         raise HTTPException(status_code=400, detail="ภาพมืดเกินไป กรุณาเพิ่มแสงแล้วลองใหม่")
@@ -274,7 +294,7 @@ def _detect_faces(image: Image.Image, mode: str = "verify") -> list[tuple[np.nda
     input_name = input_meta.name
     input_shape = input_meta.shape
 
-    configured_size = FaceConstants.FACE_DETECTOR_INPUT_SIZE
+    configured_size = get_backend_model_input_size("scrfd_detector")
     if (
         len(input_shape) == 4
         and isinstance(input_shape[2], int)
@@ -337,11 +357,10 @@ def _detect_faces(image: Image.Image, mode: str = "verify") -> list[tuple[np.nda
         anchor_centers = anchor_centers[:count]
 
         score_threshold = float(
-            get_model_value(
+            get_required_model_value(
                 "backend_models",
                 "scrfd_detector",
                 "score_threshold",
-                FaceConstants.FACE_DETECTOR_SCORE_THRESHOLD,
                 mode=mode,
             )
         )
@@ -363,11 +382,10 @@ def _detect_faces(image: Image.Image, mode: str = "verify") -> list[tuple[np.nda
     kps = np.concatenate(all_kps, axis=0)
 
     nms_threshold = float(
-            get_model_value(
+            get_required_model_value(
                 "backend_models",
                 "scrfd_detector",
                 "nms_threshold",
-                FaceConstants.FACE_DETECTOR_NMS_THRESHOLD,
                 mode=mode,
             )
         )
@@ -408,7 +426,7 @@ def _similarity_transform(src: np.ndarray, dst: np.ndarray) -> np.ndarray:
 
 
 def _align_face(image: Image.Image, keypoints: np.ndarray) -> Image.Image:
-    size = FaceConstants.FACE_RECOGNIZER_INPUT_SIZE
+    size = get_backend_model_input_size("arcface_recognizer")
     dst = _ARCFACE_DST.copy()
     if size != 112:
         dst *= size / 112.0
@@ -439,7 +457,7 @@ def _attribute_face_crop(image: Image.Image, box: np.ndarray) -> Image.Image:
     bottom = int(round(center_y + side / 2.0))
     crop = image.crop((left, top, right, bottom))
     return crop.resize(
-        (FaceConstants.FACE_ATTRIBUTE_INPUT_SIZE,) * 2,
+        (get_backend_model_input_size("backend_face_attrib"),) * 2,
         Image.Resampling.BILINEAR,
     )
 
@@ -460,23 +478,23 @@ def _validate_face_attributes(image: Image.Image, box: np.ndarray, mode: str = "
 
     left_eye_open, right_eye_open, glasses, mask, sunglasses = probabilities
     glasses_threshold = float(
-        get_model_value(
-            "backend_models", "backend_face_attrib", "glasses_threshold", FaceConstants.EYEGLASSES_THRESHOLD, mode=mode
+        get_required_model_value(
+            "backend_models", "backend_face_attrib", "glasses_threshold", mode=mode
         )
     )
     sunglasses_threshold = float(
-        get_model_value(
-            "backend_models", "backend_face_attrib", "sunglasses_threshold", FaceConstants.SUNGLASSES_THRESHOLD, mode=mode
+        get_required_model_value(
+            "backend_models", "backend_face_attrib", "sunglasses_threshold", mode=mode
         )
     )
     mask_threshold = float(
-        get_model_value(
-            "backend_models", "backend_face_attrib", "mask_threshold", FaceConstants.FACE_MASK_THRESHOLD, mode=mode
+        get_required_model_value(
+            "backend_models", "backend_face_attrib", "mask_threshold", mode=mode
         )
     )
     eye_openness = float(
-        get_model_value(
-            "backend_models", "backend_face_attrib", "minimum_eye_openness", FaceConstants.MIN_EYE_OPENNESS, mode=mode
+        get_required_model_value(
+            "backend_models", "backend_face_attrib", "minimum_eye_openness", mode=mode
         )
     )
 
@@ -539,9 +557,7 @@ def _validate_face(image: Image.Image, mode: str = "verify") -> tuple[np.ndarray
     x1, y1, x2, y2 = box
     face_area = max(0.0, x2 - x1) * max(0.0, y2 - y1)
     image_area = float(image.width * image.height)
-    min_face_area_ratio = _mode_quality_value(
-        mode, "min_face_area_ratio", FaceConstants.MIN_FACE_AREA_RATIO
-    )
+    min_face_area_ratio = _mode_quality_value(mode, "min_face_area_ratio")
     if image_area <= 0 or face_area / image_area < min_face_area_ratio:
         raise HTTPException(
             status_code=400, detail="ใบหน้าอยู่ไกลเกินไป กรุณาเข้าใกล้กล้อง"
@@ -565,7 +581,7 @@ def _employee(db: Session, code: str) -> Employee:
         select(Employee).where(Employee.employee_code == code.strip())
     )
     if employee is None:
-        raise HTTPException(status_code=404, detail="ไม่พบข้อมูลพนักงาน")
+        raise HTTPException(status_code=404, detail=FACE_ERROR_EMPLOYEE_NOT_FOUND)
     return employee
 
 
@@ -573,7 +589,7 @@ def _reference_image(employee: Employee) -> str:
     if not employee.profile_image_path:
         raise HTTPException(
             status_code=404,
-            detail="ยังไม่มีรูปใบหน้าอ้างอิงสำหรับพนักงานคนนี้",
+            detail=FACE_ERROR_NO_REFERENCE_IMAGE,
         )
     return employee.profile_image_path
 
@@ -626,15 +642,21 @@ class FaceVerifyService:
     def get_employee(db: Session, employee_code: str) -> Employee:
         employee = _employee(db, employee_code)
         if not employee.is_active:
-            raise HTTPException(status_code=403, detail="บัญชีพนักงานถูกปิดใช้งาน")
+            raise HTTPException(status_code=403, detail=FACE_ERROR_ACCOUNT_INACTIVE)
         return employee
 
     @staticmethod
     def get_employee_profile(db: Session, employee_code: str) -> dict:
         """Return the same non-sensitive employee details used after login."""
 
+        audit_logger.log(
+            action=FACE_LOOKUP_ATTEMPT.format(employee_code=employee_code.strip())
+        )
         employee = FaceVerifyService.get_employee(db, employee_code)
         profile = employee_auth_service.build_login_response(db, employee)["employee"]
+        audit_logger.log(
+            action=FACE_LOOKUP_SUCCESS.format(employee_code=employee.employee_code)
+        )
         return {
             **profile,
             "has_face_profile": bool(employee.profile_image_path),
@@ -647,18 +669,24 @@ class FaceVerifyService:
             image_path = resolve_face_image_path(_reference_image(employee))
         except ValueError as exc:
             raise HTTPException(
-                status_code=500, detail="ข้อมูลตำแหน่งไฟล์รูปใบหน้าไม่ถูกต้อง"
+                status_code=500, detail=FACE_ERROR_INVALID_IMAGE_LOCATION
             ) from exc
         if not image_path.is_file():
             raise HTTPException(
                 status_code=404,
-                detail=f"ไม่พบไฟล์รูปใบหน้าอ้างอิง: {image_path}",
+                detail=FACE_ERROR_REFERENCE_IMAGE_NOT_FOUND.format(image_path=image_path),
             )
+        audit_logger.log(
+            action=FACE_PROFILE_IMAGE_VIEW_SUCCESS.format(
+                employee_code=employee.employee_code
+            )
+        )
         return image_path
 
     @staticmethod
     def enroll_face(db: Session, payload: FaceEnrollRequest) -> Employee:
         code = payload.employee_code.strip()
+        audit_logger.log(action=FACE_ENROLL_ATTEMPT.format(employee_code=code))
         employee = FaceVerifyService.get_employee(db, code)
         image = _decode(payload.image_data_url)
 
@@ -682,18 +710,20 @@ class FaceVerifyService:
         if previous_image and normalize_face_image_key(previous_image) != image_key:
             _delete_stored_image(previous_image)
         db.refresh(employee)
+        audit_logger.log(action=FACE_ENROLL_SUCCESS.format(employee_code=code))
         return employee
 
     @staticmethod
     def verify_face(db: Session, payload: FaceVerifyRequest) -> dict[str, object]:
         code = payload.employee_code.strip()
+        audit_logger.log(action=FACE_VERIFY_ATTEMPT.format(employee_code=code))
         _rate(code)
         employee = FaceVerifyService.get_employee(db, code)
         try:
             reference_image = resolve_face_image_path(_reference_image(employee))
         except ValueError as exc:
             raise HTTPException(
-                status_code=500, detail="ข้อมูลตำแหน่งไฟล์รูปใบหน้าไม่ถูกต้อง"
+                status_code=500, detail=FACE_ERROR_INVALID_IMAGE_LOCATION
             ) from exc
 
         incoming = _embedding(_decode(payload.image_data_url), "verify")
@@ -703,15 +733,23 @@ class FaceVerifyService:
         # Both vectors are L2-normalized, so dot product == cosine similarity.
         score = float(np.dot(stored, incoming))
         threshold = float(
-            get_model_value(
+            get_required_model_value(
                 "backend_models",
                 "arcface_recognizer",
                 "cosine_threshold",
-                FaceConstants.FACE_VERIFY_COSINE_THRESHOLD,
                 mode="verify",
             )
         )
         is_match = score >= threshold
+        audit_logger.log(
+            action=(
+                FACE_VERIFY_SUCCESS if is_match else FACE_VERIFY_FAILED
+            ).format(
+                employee_code=code,
+                score=round(score, 6),
+                threshold=threshold,
+            )
+        )
 
         return {
             "is_match": is_match,

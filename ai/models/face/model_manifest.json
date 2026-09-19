@@ -1,0 +1,16 @@
+{
+  "backend_models": {
+    "scrfd_detector": {
+      "model_file": "scrfd.onnx",
+      "input_size": 640
+    },
+    "arcface_recognizer": {
+      "model_file": "arcface.onnx",
+      "input_size": 112
+    },
+    "backend_face_attrib": {
+      "model_file": "face_attrib_net.onnx",
+      "input_size": 128
+    }
+  }
+}
