@@ -66,9 +66,9 @@ async def http_exception_handler(_request: Request, exc: HTTPException):
 app.include_router(api_router, prefix="/api/v1")
 
 
-# @app.get("/")
-# async def root():
-#     return {
+@app.get("/")
+async def root():
+    return {
         "status": "healthy",
         "service": "GUTSESS Backend API",
         "version": "1.0.0",
