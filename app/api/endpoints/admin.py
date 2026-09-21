@@ -23,7 +23,6 @@ from app.schemas.admin import (
     AdminEmployeeListResponse,
     AdminEmployeeResponse,
     AdminEmployeeUpdate,
-    AdminPasswordReset,
     ModelSettingsReset,
     ModelSettingsUpdate,
 )
@@ -106,22 +105,6 @@ async def update_user(
     return admin_employee_service.update_employee(
         db, employee_code, payload, current_employee.employee_code
     )
-
-
-@router.post("/admin/users/{employee_code}/reset-password", status_code=204)
-@active_employee_required
-@admin_user_manager_required
-async def reset_user_password(
-    employee_code: str,
-    payload: AdminPasswordReset,
-    http_request: Request,
-    db: Session = Depends(get_db),
-    current_employee: Employee | None = None,
-):
-    admin_employee_service.reset_password(
-        db, employee_code, payload.password, current_employee.employee_code
-    )
-    return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
 @router.delete("/admin/users/{employee_code}", status_code=204)

@@ -33,14 +33,8 @@ class Settings(BaseSettings):
     ALGORITHM: str = Field(default="HS256")
     ACCESS_TOKEN_EXPIRE_MINUTES: int = Field(default=30)
 
-    # Email and frontend
-    SMTP_HOST: str = Field(default="smtp.gmail.com")
-    SMTP_PORT: int = Field(default=587)
-    SMTP_USER: str = Field(default="")
-    SMTP_PASS: str = Field(default="")
-    EMAIL_FROM: str = Field(default="")
+    # Frontend
     FRONTEND_URL: str = Field(default="http://localhost:5173")
-    RESET_EXPIRE_MINUTES: int = Field(default=15)
 
     # MFA
     MFA_ISSUER_NAME: str = Field(default="PBAC-System")

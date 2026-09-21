@@ -1,20 +1,12 @@
 from __future__ import annotations
 
-import logging
 from typing import Any, Optional
 
-from fastapi import BackgroundTasks, HTTPException, Request, status
-from sqlalchemy import select, update
+from fastapi import HTTPException, Request, status
 from sqlalchemy.orm import Session
 
 from app.core.audit_logger import audit_logger, set_audit_context
 from app.core.registries import (
-    CHANGE_PASSWORD_ATTEMPT,
-    CHANGE_PASSWORD_SUCCESS,
-    CLIENT_ERROR_BAD_REQUEST,
-    FORGOT_PASSWORD_ATTEMPT,
-    EMAIL_SEND_SUCCESS,
-    FORGOT_PASSWORD_FAILED,
     LOGIN_ATTEMPT,
     LOGIN_FAILED_REASON,
     LOGIN_SUCCESS,
@@ -30,12 +22,6 @@ from app.models.name_prefixs import NamePrefix
 from app.models.positions import Position
 from app.models.roles import Role
 from app.models.routes import Route
-from app.services.email import (
-    send_change_password_notification_email,
-    send_plain_password_email,
-)
-
-_logger = logging.getLogger(__name__)
 
 # ─────────────────────────────────────────────────────────────────────────────
 # EmployeeAuthService
@@ -299,174 +285,5 @@ class EmployeeAuthService:
         )
 
 
-class PasswordService:
-    """Service layer for password operations.
-
-    All business logic AND audit logging live here — endpoints only route.
-    """
-
-    @staticmethod
-    def forgot_password(
-        db: Session,
-        employee_code: str,
-        send_plain_password: bool,
-        background_tasks: BackgroundTasks,
-    ) -> dict:
-        # Look up employee
-        employee = db.execute(
-            select(Employee).where(Employee.employee_code == employee_code)
-        ).scalar_one_or_none()
-
-        # ── Attempt audit ──────────────────────────────────────────────
-        audit_logger.log(
-            action=FORGOT_PASSWORD_ATTEMPT.format(resource="Employee"),
-        )
-
-        # ── Validate ──────────────────────────────────────────────────
-        if not employee:
-            audit_logger.log(
-                action=FORGOT_PASSWORD_FAILED.format(
-                    resource="Employee", reason="Employee not found"
-                ),
-            )
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="ไม่พบรหัสพนักงานในระบบ โปรดติดต่อ GutsEssCenter",
-            )
-
-        employee_name = (
-            f"{employee.first_name} {employee.last_name}".strip()
-            or employee.employee_code
-        )
-
-        if not employee.is_active:
-            audit_logger.log(
-                action=FORGOT_PASSWORD_FAILED.format(
-                    resource="Employee", reason="Employee account is inactive"
-                ),
-            )
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="บัญชีพนักงานถูกปิดใช้งาน โปรดติดต่อ GutsEssCenter",
-            )
-
-        if not employee.email:
-            audit_logger.log(
-                action=FORGOT_PASSWORD_FAILED.format(
-                    resource="Employee", reason="Employee has no email registered"
-                ),
-            )
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="ไม่พบอีเมลที่ลงทะเบียนไว้สำหรับรหัสพนักงานนี้ โปรดติดต่อ GutsEssCenter",
-            )
-
-        # ── Send email and audit based on real result ────────────────
-        email_to = employee.email
-        email_emp_code = employee.employee_code
-
-        def _send_and_audit():
-            success = send_plain_password_email(
-                email_to, employee_name, employee.password, email_emp_code
-            )
-            if success:
-                audit_logger.log(
-                    action=EMAIL_SEND_SUCCESS.format(
-                        resource="Employee", email=email_to
-                    ),
-                )
-            else:
-                audit_logger.log(
-                    action=FORGOT_PASSWORD_FAILED.format(
-                        resource="Employee", reason="Email delivery failed"
-                    ),
-                )
-
-        background_tasks.add_task(_send_and_audit)
-
-        return {
-            "message": "ส่งรหัสผ่านไปยังอีเมลเรียบร้อยแล้ว กรุณาตรวจสอบอีเมลที่ลงทะเบียนไว้",
-        }
-
-    @staticmethod
-    def change_password(
-        db: Session,
-        employee_code: str,
-        old_password: str,
-        new_password: str,
-        background_tasks: BackgroundTasks,
-    ) -> dict:
-        # Audit attempt
-        audit_logger.log(
-            action=CHANGE_PASSWORD_ATTEMPT.format(resource="Employee"),
-        )
-
-        # Look up employee
-        employee = db.execute(
-            select(Employee).where(Employee.employee_code == employee_code)
-        ).scalar_one_or_none()
-
-        if not employee:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="ไม่พบรหัสพนักงานในระบบ โปรดติดต่อ GutsEssCenter",
-            )
-
-        if not employee.is_active:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="บัญชีพนักงานถูกปิดใช้งาน โปรดติดต่อ GutsEssCenter",
-            )
-
-        if employee.password != old_password:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="รหัสผ่านล่าสุดไม่ถูกต้อง โปรดติดต่อ GutsEssCenter",
-            )
-
-        if employee.password == new_password:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail=CLIENT_ERROR_BAD_REQUEST,
-            )
-
-        # Store name and email before update for the email task
-        employee_name = (
-            f"{employee.first_name} {employee.last_name}".strip()
-            or employee.employee_code
-        )
-        employee_email = employee.email
-
-        # Update password (plaintext for now)
-        stmt = (
-            update(Employee)
-            .where(Employee.employee_code == employee_code)
-            .values(password=new_password)
-        )
-        db.execute(stmt)
-        db.commit()
-
-        # Audit password change success (immediately after commit)
-        audit_logger.log(
-            action=CHANGE_PASSWORD_SUCCESS.format(resource="Employee"),
-        )
-
-        # Send notification email (background, separate concern)
-        def _send_notification():
-            if employee_email:
-                success = send_change_password_notification_email(
-                    employee_email, employee_name, new_password, employee_code
-                )
-                if not success:
-                    _logger.warning(
-                        "Change-password notification email FAILED for %s", employee_email
-                    )
-
-        background_tasks.add_task(_send_notification)
-
-        return {"message": "เปลี่ยนรหัสผ่านสำเร็จ"}
-
-
 # Singleton instances
 employee_auth_service = EmployeeAuthService()
-password_service = PasswordService()

@@ -16,7 +16,6 @@ from app.core.media_storage import (
 from app.core.registries import (
     ADMIN_EMPLOYEE_CREATE_SUCCESS,
     ADMIN_EMPLOYEE_DELETE_SUCCESS,
-    ADMIN_EMPLOYEE_PASSWORD_RESET_SUCCESS,
     ADMIN_EMPLOYEE_UPDATE_SUCCESS,
     ADMIN_ERROR_DELETE_SELF,
     ADMIN_ERROR_EMPLOYEE_CODE_EXISTS,
@@ -184,18 +183,6 @@ class AdminEmployeeService:
             action=ADMIN_EMPLOYEE_UPDATE_SUCCESS.format(employee_code=employee.employee_code)
         )
         return _serialize_employee(db, employee)
-
-    @staticmethod
-    def reset_password(db: Session, employee_code: str, password: str, actor_code: str) -> None:
-        employee = _employee_or_404(db, employee_code)
-        employee.password = password
-        employee.updated_by = actor_code
-        db.commit()
-        audit_logger.log(
-            action=ADMIN_EMPLOYEE_PASSWORD_RESET_SUCCESS.format(
-                employee_code=employee.employee_code
-            )
-        )
 
     @staticmethod
     def delete_employee(db: Session, employee_code: str, actor_code: str) -> None:

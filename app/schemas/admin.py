@@ -52,11 +52,6 @@ class AdminEmployeeUpdate(BaseModel):
     leave_date: date | None = None
 
 
-class AdminPasswordReset(BaseModel):
-    model_config = ConfigDict(extra="forbid")
-    password: str = Field(..., min_length=6, max_length=6)
-
-
 class AdminEmployeeResponse(BaseModel):
     employee_code: str
     role_id: int

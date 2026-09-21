@@ -25,15 +25,10 @@ AUTH_ERROR_NETWORK_AUTH_REQUIRED: Final[str] = (
 # AUTH — Credential errors
 # =========================================================
 AUTH_ERROR_INVALID_CREDENTIALS: Final[str] = "รหัสผ่านไม่ถูกต้อง"
-AUTH_ERROR_INVALID_OLD_PASSWORD: Final[str] = "รหัสผ่านล่าสุดไม่ถูกต้อง"
 
 # =========================================================
 # AUTH — Account status errors
 # =========================================================
-AUTH_ERROR_ACCOUNT_INACTIVE_FORGOT_PASSWORD: Final[str] = (
-    "Employee account is inactive. Please contact Human Resources. "
-    "Plase contact to GutsEssCenter"
-)
 AUTH_ERROR_ACCOUNT_LOCKED: Final[str] = (
     "Account is locked due to multiple failed login attempts. "
     "Plase contact to GutsEssCenter"
@@ -54,18 +49,6 @@ LOGIN_SUCCESS: Final[str] = "{resource} Login successful"
 LOGOUT_ATTEMPT: Final[str] = "{resource} Attempt to Logout"
 LOGOUT_FAILED: Final[str] = "{resource} Logout failed"
 LOGOUT_SUCCESS: Final[str] = "{resource} Logout successful"
-
-# =========================================================
-# AUTH — Audit: Password
-# =========================================================
-FORGOT_PASSWORD_ATTEMPT: Final[str] = "{resource} attempted forgot-password request"
-FORGOT_PASSWORD_FAILED: Final[str] = (
-    "{resource} Forgot-password request failed - {reason}"
-)
-CHANGE_PASSWORD_ATTEMPT: Final[str] = "{resource} attempted to change password"
-CHANGE_PASSWORD_SUCCESS: Final[str] = "{resource} changed password successfully"
-RESET_PASSWORD_SUCCESS: Final[str] = "Password reset successful"
-ACCOUNT_LOCKED: Final[str] = "Account locked after repeated failures"
 
 # =========================================================
 # AUTH — Audit: Registration

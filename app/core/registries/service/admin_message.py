@@ -6,9 +6,6 @@ from typing import Final
 # ADMIN — Employee management audit actions
 ADMIN_EMPLOYEE_CREATE_SUCCESS: Final[str] = "Admin created employee (code={employee_code})"
 ADMIN_EMPLOYEE_UPDATE_SUCCESS: Final[str] = "Admin updated employee (code={employee_code})"
-ADMIN_EMPLOYEE_PASSWORD_RESET_SUCCESS: Final[str] = (
-    "Admin reset employee password (code={employee_code})"
-)
 ADMIN_EMPLOYEE_DELETE_SUCCESS: Final[str] = "Admin deleted employee (code={employee_code})"
 ADMIN_FACE_PROFILE_REPLACE_SUCCESS: Final[str] = (
     "Admin replaced employee face profile (code={employee_code})"

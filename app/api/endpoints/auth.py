@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, BackgroundTasks, Depends, Request, status
+from fastapi import APIRouter, Depends, Request, status
 from sqlalchemy.orm import Session
 
 from app.core.audit_logger import set_audit_context
@@ -8,17 +8,14 @@ from app.core.db.session import get_db
 
 from app.models.employees import Employee
 from app.schemas.auth import (
-    ChangePasswordRequest,
     EmployeeLogin,
     EmployeeRegister,
     EmployeeResponse,
-    ForgotPasswordRequest,
     LoginResponse,
     LogoutRequest,
     LogoutResponse,
-    MessageResponse,
 )
-from app.services.auth import employee_auth_service, password_service
+from app.services.auth import employee_auth_service
 
 router = APIRouter()
 
@@ -91,33 +88,3 @@ async def employee_logout(
     )
     return employee_auth_service.logout(employee_code=employee_code)
 
-
-@router.post("/forgot-password", response_model=MessageResponse)
-async def forgot_password(
-    request: ForgotPasswordRequest,
-    background_tasks: BackgroundTasks,
-    db: Session = Depends(get_db),
-):
-    """Send password reset email. Audit logged in service layer."""
-    return password_service.forgot_password(
-        db=db,
-        employee_code=request.employee_code,
-        send_plain_password=request.send_plain_password,
-        background_tasks=background_tasks,
-    )
-
-
-@router.post("/change-password", response_model=MessageResponse)
-async def change_password(
-    request: ChangePasswordRequest,
-    background_tasks: BackgroundTasks,
-    db: Session = Depends(get_db),
-):
-    """Change password. Audit logged in service layer."""
-    return password_service.change_password(
-        db=db,
-        employee_code=request.employee_code,
-        old_password=request.old_password,
-        new_password=request.new_password,
-        background_tasks=background_tasks,
-    )
