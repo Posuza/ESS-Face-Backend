@@ -49,10 +49,14 @@ class EmployeeResponse(BaseModel):
 
 
 class EmployeeLogin(BaseModel):
-    """Schema for employee login credentials."""
+    """Schema for employee login credentials.
 
-    employee_code: str = Field(..., min_length=6, max_length=6)
-    password: str = Field(..., min_length=6, max_length=6)
+    Length/format validation is handled in the auth service so the API can
+    return the same user-friendly Thai messages used by the frontend.
+    """
+
+    employee_code: str
+    password: str
 
 
 class EmployeeInfo(BaseModel):
@@ -74,6 +78,7 @@ class EmployeeInfo(BaseModel):
     division_name: Optional[str] = None
     route_id: Optional[int] = None
     route_name: Optional[str] = None
+    has_face_profile: bool = False
 
 
 class LoginResponse(BaseModel):
@@ -92,4 +97,3 @@ class LogoutResponse(BaseModel):
 
 class LogoutRequest(BaseModel):
     employee_code: str = Field(..., min_length=6, max_length=6)
-

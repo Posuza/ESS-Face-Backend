@@ -2,7 +2,9 @@ from __future__ import annotations
 
 import contextvars
 import logging
+import queue
 import threading
+import time
 from typing import Optional
 
 from fastapi import Request
@@ -12,6 +14,8 @@ from app.services.audit_logs import AuditLogService
 
 _logger = logging.getLogger(__name__)
 _service = AuditLogService()
+_AUDIT_QUEUE_SIZE = 1000
+_AUDIT_FAILURE_BACKOFF_SECONDS = 1.0
 
 
 # ─── Request context (auto-injected from middleware) ────────────────────────
@@ -122,7 +126,29 @@ def _extract_request_context(request: Optional[Request]) -> dict:
 
 
 class _AuditWrapper:
-    """Fire-and-forget audit writer. Context auto-resolved from middleware."""
+    """Bounded, single-connection audit writer."""
+
+    def __init__(self) -> None:
+        self._queue: queue.Queue[AuditLogCreate] = queue.Queue(
+            maxsize=_AUDIT_QUEUE_SIZE
+        )
+        self._worker = threading.Thread(
+            target=self._run,
+            name="audit-log-writer",
+            daemon=True,
+        )
+        self._worker.start()
+
+    def _run(self) -> None:
+        while True:
+            payload = self._queue.get()
+            try:
+                _service.create(payload)
+            except Exception as exc:  # pragma: no cover - audit must not raise
+                _logger.error("audit.log write failed: %s", exc, exc_info=True)
+                time.sleep(_AUDIT_FAILURE_BACKOFF_SECONDS)
+            finally:
+                self._queue.task_done()
 
     def log(
         self,
@@ -142,20 +168,11 @@ class _AuditWrapper:
             action=action,
         )
 
-        def _worker(p: AuditLogCreate) -> None:
-            try:
-                _service.create(p)
-            except Exception as exc:  # pragma: no cover - audit must not raise
-                _logger.error(
-                    "audit.log failed in background thread: %s", exc, exc_info=True
-                )
-
         try:
-            t = threading.Thread(target=_worker, args=(payload,), daemon=True)
-            t.start()
-        except Exception as exc:  # pragma: no cover
-            _logger.error(
-                "failed to start audit background thread: %s", exc, exc_info=True
+            self._queue.put_nowait(payload)
+        except queue.Full:
+            _logger.warning(
+                "audit.log queue is full; dropping event action=%r", action
             )
 
 

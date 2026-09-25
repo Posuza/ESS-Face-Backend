@@ -57,9 +57,19 @@ def _optional_int(value: object) -> int | None:
     return int(value)
 
 
-def _serialize_employee(db: Session, employee: Employee) -> dict:
-    role_names = _lookup_map(db, Role, Role.role_id, Role.role_name)
-    prefix_names = _lookup_map(db, NamePrefix, NamePrefix.prefix_id, NamePrefix.prefix_name)
+def _serialize_employee(
+    db: Session,
+    employee: Employee,
+    *,
+    role_names: dict[int, str] | None = None,
+    prefix_names: dict[int, str] | None = None,
+) -> dict:
+    if role_names is None:
+        role_names = _lookup_map(db, Role, Role.role_id, Role.role_name)
+    if prefix_names is None:
+        prefix_names = _lookup_map(
+            db, NamePrefix, NamePrefix.prefix_id, NamePrefix.prefix_name
+        )
     face_profile_location = None
     if employee.profile_image_path:
         try:
@@ -129,8 +139,20 @@ class AdminEmployeeService:
             .offset((page - 1) * page_size)
             .limit(page_size)
         ).all()
+        role_names = _lookup_map(db, Role, Role.role_id, Role.role_name)
+        prefix_names = _lookup_map(
+            db, NamePrefix, NamePrefix.prefix_id, NamePrefix.prefix_name
+        )
         return {
-            "items": [_serialize_employee(db, employee) for employee in employees],
+            "items": [
+                _serialize_employee(
+                    db,
+                    employee,
+                    role_names=role_names,
+                    prefix_names=prefix_names,
+                )
+                for employee in employees
+            ],
             "total": total,
             "page": page,
             "page_size": page_size,

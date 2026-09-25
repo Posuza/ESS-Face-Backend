@@ -87,4 +87,3 @@ async def employee_logout(
         employee_code=employee_code,
     )
     return employee_auth_service.logout(employee_code=employee_code)
-

@@ -137,30 +137,41 @@ class EmployeeAuthService:
     def authenticate_employee(
         db: Session, employee_code: str, password: str, request: Request | None = None
     ) -> Employee:
-        """
-        Authenticate employee by code and password.
-        Sets audit context if request is provided.
-        """
+        """Authenticate an employee with a 6-digit code and 6-character password."""
+        code = (employee_code or "").strip()
+        supplied_password = password or ""
+
+        if len(code) != 6 or not code.isdigit():
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="กรุณากรอกรหัสพนักงาน 6 หลัก",
+            )
+
+        if len(supplied_password) != 6:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="กรุณากรอกรหัสผ่าน 6 ตัวอักษร",
+            )
+
         employee = (
-            db.query(Employee).filter(Employee.employee_code == employee_code).first()
+            db.query(Employee).filter(Employee.employee_code == code).first()
         )
 
-        # Set audit context with real user info (before any checks)
+        # Set audit context with real user info (before account checks).
         if request:
             employee_name = (
                 f"{employee.first_name} {employee.last_name}".strip()
                 or employee.email
-                or employee_code
+                or code
                 if employee
-                else employee_code
+                else code
             )
             set_audit_context(
                 request=request,
                 user_name=employee_name,
-                employee_code=employee_code,
+                employee_code=code,
             )
 
-        # Audit login attempt
         audit_logger.log(action=LOGIN_ATTEMPT.format(resource="Employee"))
 
         if not employee:
@@ -175,20 +186,6 @@ class EmployeeAuthService:
                 detail="ไม่พบรหัสพนักงานในระบบ โปรดติดต่อ GutsEssCenter",
             )
 
-        # Verify password (plaintext comparison - TODO: hash when security enabled)
-        if employee.password != password:
-            audit_logger.log(
-                action=LOGIN_FAILED_REASON.format(
-                    resource="Employee",
-                    reason="invalid password",
-                )
-            )
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="รหัสผ่านไม่ถูกต้อง โปรดติดต่อ GutsEssCenter",
-            )
-
-        # Check if account is active
         if not employee.is_active:
             audit_logger.log(
                 action=LOGIN_FAILED_REASON.format(
@@ -201,9 +198,45 @@ class EmployeeAuthService:
                 detail="บัญชีผู้ใช้ถูกปิดใช้งาน โปรดติดต่อ GutsEssCenter",
             )
 
-        # Audit login success
-        audit_logger.log(action=LOGIN_SUCCESS.format(resource="Employee"))
+        stored_password = employee.password or ""
+        if not stored_password.strip():
+            audit_logger.log(
+                action=LOGIN_FAILED_REASON.format(
+                    resource="Employee",
+                    reason="password not configured",
+                )
+            )
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="พนักงานยังไม่ได้ตั้งรหัสผ่าน โปรดติดต่อ GutsEssCenter",
+            )
 
+        if len(stored_password) != 6:
+            audit_logger.log(
+                action=LOGIN_FAILED_REASON.format(
+                    resource="Employee",
+                    reason="stored password is not 6 characters",
+                )
+            )
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="ข้อมูลรหัสผ่านพนักงานไม่สมบูรณ์ โปรดติดต่อ GutsEssCenter",
+            )
+
+        # Plaintext comparison is preserved to match the existing employee model.
+        if stored_password != supplied_password:
+            audit_logger.log(
+                action=LOGIN_FAILED_REASON.format(
+                    resource="Employee",
+                    reason="invalid password",
+                )
+            )
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="รหัสผ่านไม่ถูกต้อง กรุณาตรวจสอบรหัสผ่าน 6 ตัวอักษรอีกครั้ง",
+            )
+
+        audit_logger.log(action=LOGIN_SUCCESS.format(resource="Employee"))
         return employee
 
     @staticmethod
@@ -271,6 +304,7 @@ class EmployeeAuthService:
                 "division_name": division_name,
                 "route_id": employee.routes_id or None,
                 "route_name": route_name,
+                "has_face_profile": bool(employee.profile_image_path),
             },
             "message": "เข้าสู่ระบบสำเร็จ",
         }

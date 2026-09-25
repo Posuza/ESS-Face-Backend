@@ -1,11 +1,10 @@
 from __future__ import annotations
 
-import logging
 import json
+import logging
 
 from fastapi import status
 from sqlalchemy.exc import (
-    DatabaseError,
     DataError,
     DBAPIError,
     IntegrityError,
@@ -44,37 +43,6 @@ class DatabaseErrorMiddleware:
         try:
             await self.app(scope, receive, send)
 
-        except (OperationalError, InterfaceError, DBAPIError, DatabaseError) as e:
-            # Database connection errors, timeouts, host blocked
-            error_msg = str(e).lower()
-            _logger.exception("Database DBAPI error during request: %s", e)
-
-            # Check if it's a timeout
-            if "timeout" in error_msg or "timed out" in error_msg:
-                audit_logger.log(
-                    action="[DATABASE_ERROR_CONNECTION_FAILED] Database timeout during request",
-                )
-
-                await self._send_error(send, status.HTTP_503_SERVICE_UNAVAILABLE, DATABASE_ERROR_CONNECTION_FAILED)
-                return
-
-            # Check if host is blocked (MySQL error 1129)
-            if "1129" in error_msg or "blocked" in error_msg:
-                audit_logger.log(
-                    action="[DATABASE_ERROR_HOST_BLOCKED] Host blocked by MySQL due to connection errors",
-                )
-
-                await self._send_error(send, status.HTTP_503_SERVICE_UNAVAILABLE, DATABASE_ERROR_HOST_BLOCKED)
-                return
-
-            # Generic connection error
-            audit_logger.log(
-                action="[DATABASE_ERROR_CONNECTION_FAILED] Database connection failed",
-            )
-
-            await self._send_error(send, status.HTTP_503_SERVICE_UNAVAILABLE, DATABASE_ERROR_CONNECTION_FAILED)
-            return
-
         except IntegrityError as e:
             # Constraint violations (unique, foreign key, etc.)
             error_msg = str(e).lower()
@@ -106,13 +74,44 @@ class DatabaseErrorMiddleware:
             return
 
         except SQLTimeoutError:
-            # Explicit timeout errors
-            audit_logger.log(
-                action="[DATABASE_ERROR_CONNECTION_FAILED] Database operation timeout",
+            _logger.exception("Database pool timeout during request")
+            await self._send_error(
+                send,
+                status.HTTP_503_SERVICE_UNAVAILABLE,
+                DATABASE_ERROR_CONNECTION_FAILED,
             )
-
-            await self._send_error(send, status.HTTP_503_SERVICE_UNAVAILABLE, DATABASE_ERROR_CONNECTION_FAILED)
             return
+
+        except (OperationalError, InterfaceError) as e:
+            await self._handle_connection_error(send, e)
+            return
+
+        except DBAPIError as e:
+            if e.connection_invalidated:
+                await self._handle_connection_error(send, e)
+                return
+
+            _logger.exception("Database DBAPI query error during request: %s", e)
+            await self._send_error(
+                send,
+                status.HTTP_500_INTERNAL_SERVER_ERROR,
+                DATABASE_ERROR_QUERY_ERROR,
+            )
+            return
+
+    @classmethod
+    async def _handle_connection_error(cls, send: Send, error: Exception) -> None:
+        error_msg = str(error).lower()
+        _logger.exception("Database connection error during request: %s", error)
+
+        # A database-backed audit entry here would create another failing
+        # connection and amplify the outage.
+        if "1129" in error_msg or "blocked" in error_msg:
+            detail = DATABASE_ERROR_HOST_BLOCKED
+        else:
+            detail = DATABASE_ERROR_CONNECTION_FAILED
+
+        await cls._send_error(send, status.HTTP_503_SERVICE_UNAVAILABLE, detail)
 
     @staticmethod
     async def _send_error(send: Send, status_code: int, detail: str) -> None:

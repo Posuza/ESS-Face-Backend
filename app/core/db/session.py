@@ -2,21 +2,18 @@
 
 from __future__ import annotations
 
-import os
-import socket
 import logging
 from contextlib import contextmanager
 
 from fastapi import HTTPException, status
 from sqlalchemy.exc import (
-    DatabaseError,
     IntegrityError,
     InterfaceError,
     OperationalError,
 )
+from sqlalchemy.exc import TimeoutError as SQLTimeoutError
 from sqlalchemy.orm import Session
 
-from app.core.config import settings
 from app.core.db.engine import SessionLocal
 from app.core.registries import (
     DATABASE_ERROR_CONNECTION_FAILED,
@@ -24,24 +21,6 @@ from app.core.registries import (
 )
 
 _logger = logging.getLogger(__name__)
-
-
-def _is_db_port_open(timeout: float = 1.0) -> bool:
-    """Quick check to see if the database is reachable.
-
-    - For SQLite: always returns True (local file, no server)
-    - For MySQL:  TCP check against host:port
-    """
-    if settings.DB_ENGINE.lower() == "sqlite":
-        return True
-    host = settings.DB_HOST
-    port = int(settings.DB_PORT)
-    try:
-        sock = socket.create_connection((host, port), timeout)
-        sock.close()
-        return True
-    except Exception:
-        return False
 
 
 def _raise_db_error(error_msg: str = "") -> None:
@@ -66,15 +45,9 @@ def _raise_db_error(error_msg: str = "") -> None:
 
 def get_db():
     """FastAPI dependency for database session."""
-    if not _is_db_port_open():
-        raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail=DATABASE_ERROR_CONNECTION_FAILED,
-        )
-
     try:
         db = SessionLocal()
-    except (DatabaseError, OperationalError, InterfaceError) as e:
+    except (OperationalError, InterfaceError, SQLTimeoutError) as e:
         _raise_db_error(str(e))
 
     try:
@@ -82,7 +55,7 @@ def get_db():
     except IntegrityError:
         db.rollback()
         raise
-    except (DatabaseError, OperationalError, InterfaceError) as e:
+    except (OperationalError, InterfaceError, SQLTimeoutError) as e:
         _raise_db_error(str(e))
     finally:
         db.close()
@@ -91,15 +64,9 @@ def get_db():
 @contextmanager
 def get_session() -> Session:
     """Get a SQLAlchemy session with automatic cleanup."""
-    if not _is_db_port_open():
-        raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail=DATABASE_ERROR_CONNECTION_FAILED,
-        )
-
     try:
         session = SessionLocal()
-    except (DatabaseError, OperationalError, InterfaceError) as e:
+    except (OperationalError, InterfaceError, SQLTimeoutError) as e:
         _raise_db_error(str(e))
 
     try:
@@ -107,7 +74,7 @@ def get_session() -> Session:
     except IntegrityError:
         session.rollback()
         raise
-    except (DatabaseError, OperationalError, InterfaceError) as e:
+    except (OperationalError, InterfaceError, SQLTimeoutError) as e:
         _raise_db_error(str(e))
     finally:
         session.close()
