@@ -241,9 +241,9 @@ def roles_required(*allowed_roles):
 
 
 def admin_user_manager_required(func):
-    """Allow full admins plus selected employee codes to manage users."""
+    """Allow the four user managers and Super Admin to manage users."""
 
-    admin_roles = {"admin", "super_admin"}
+    super_admin_roles = {"super_admin"}
 
     @wraps(func)
     async def wrapper(*args, **kwargs):
@@ -263,7 +263,7 @@ def admin_user_manager_required(func):
         employee_code = current_employee.employee_code
         if (
             employee_code not in USER_MANAGER_EMPLOYEE_CODES
-            and not _employee_has_role(db, employee_code, admin_roles)
+            and not _employee_has_role(db, employee_code, super_admin_roles)
         ):
             audit_logger.log(
                 action=ACCESS_DENIED_ROLE,

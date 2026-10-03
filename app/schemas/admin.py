@@ -87,6 +87,29 @@ class AdminEmployeeListResponse(BaseModel):
     page_size: int
 
 
+class EmployeeDirectoryItem(BaseModel):
+    employee_code: str
+    first_name: str
+    last_name: str
+    is_active: bool
+    has_face_profile: bool
+    profile_image_updated_at: datetime | None = None
+
+
+class EmployeeDirectoryListResponse(BaseModel):
+    items: list[EmployeeDirectoryItem]
+    total: int
+    page: int
+    page_size: int
+
+
+class EmployeeSummaryResponse(BaseModel):
+    total: int
+    registered: int
+    missing: int
+    excluded: int = 0
+
+
 class ModelSettingsUpdate(BaseModel):
     model_config = ConfigDict(extra="forbid")
     active: bool | None = None

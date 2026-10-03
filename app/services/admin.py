@@ -3,7 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from fastapi import HTTPException, status
-from sqlalchemy import func, or_, select
+from sqlalchemy import and_, case, func, or_, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -55,6 +55,19 @@ def _optional_int(value: object) -> int | None:
     if value is None or value == "":
         return None
     return int(value)
+
+
+def _employee_population_filter():
+    """Select employees shown in face-registration summaries and tables."""
+    normalized_role_name = func.replace(
+        func.replace(func.lower(func.trim(Role.role_name)), "-", "_"),
+        " ",
+        "_",
+    )
+    super_admin_role_ids = select(Role.role_id).where(
+        normalized_role_name == "super_admin"
+    )
+    return Employee.role_id.not_in(super_admin_role_ids)
 
 
 def _serialize_employee(
@@ -109,6 +122,55 @@ def _serialize_employee(
 
 class AdminEmployeeService:
     @staticmethod
+    def employee_summary(
+        db: Session,
+        *,
+        is_active: bool | None = True,
+        include_super_admin: bool = False,
+        excluded_include_super_admin: bool | None = None,
+    ) -> dict[str, int]:
+        registered_face = and_(
+            Employee.profile_image_path.is_not(None),
+            Employee.profile_image_path != "",
+        )
+        filters = [] if include_super_admin else [_employee_population_filter()]
+        if is_active is not None:
+            filters.append(Employee.is_active.is_(is_active))
+        total, registered = db.execute(
+            select(
+                func.count(),
+                func.coalesce(func.sum(case((registered_face, 1), else_=0)), 0),
+            )
+            .select_from(Employee)
+            .where(*filters)
+        ).one()
+        total = int(total or 0)
+        registered = int(registered or 0)
+        if excluded_include_super_admin is None:
+            excluded_include_super_admin = include_super_admin
+        excluded_filters = (
+            [] if excluded_include_super_admin else [_employee_population_filter()]
+        )
+        visible_population = db.scalar(
+            select(func.count()).select_from(Employee).where(*excluded_filters)
+        ) or 0
+        active_population = db.scalar(
+            select(func.count())
+            .select_from(Employee)
+            .where(
+                _employee_population_filter(),
+                Employee.is_active.is_(True),
+            )
+        ) or 0
+        excluded = int(visible_population) - int(active_population)
+        return {
+            "total": total,
+            "registered": registered,
+            "missing": total - registered,
+            "excluded": excluded,
+        }
+
+    @staticmethod
     def list_employees(
         db: Session,
         *,
@@ -116,8 +178,14 @@ class AdminEmployeeService:
         is_active: bool | None,
         page: int,
         page_size: int,
+        registered_faces_first: bool = False,
+        sort_employee_code: bool = False,
+        sort_by: str | None = None,
+        sort_direction: str = "asc",
+        face_status: str = "all",
+        include_super_admin: bool = False,
     ) -> dict:
-        filters = []
+        filters = [] if include_super_admin else [_employee_population_filter()]
         normalized = search.strip()
         if normalized:
             pattern = f"%{normalized}%"
@@ -126,16 +194,59 @@ class AdminEmployeeService:
                     Employee.employee_code.ilike(pattern),
                     Employee.first_name.ilike(pattern),
                     Employee.last_name.ilike(pattern),
-                    Employee.email.ilike(pattern),
                 )
             )
         if is_active is not None:
             filters.append(Employee.is_active.is_(is_active))
+        missing_face_profile = case(
+            (
+                or_(
+                    Employee.profile_image_path.is_(None),
+                    Employee.profile_image_path == "",
+                ),
+                1,
+            ),
+            else_=0,
+        )
+        registered_face_filter = and_(
+            Employee.profile_image_path.is_not(None),
+            Employee.profile_image_path != "",
+        )
+        if face_status == "registered":
+            filters.append(registered_face_filter)
+        elif face_status == "missing":
+            filters.append(
+                or_(
+                    Employee.profile_image_path.is_(None),
+                    Employee.profile_image_path == "",
+                )
+            )
         total = db.scalar(select(func.count()).select_from(Employee).where(*filters)) or 0
+        order_by = []
+        if sort_by == "face_status":
+            order_by.append(
+                missing_face_profile.asc()
+                if sort_direction == "asc"
+                else missing_face_profile.desc()
+            )
+            order_by.append(Employee.employee_code.asc())
+        elif sort_by == "employee_code":
+            order_by.append(
+                Employee.employee_code.asc()
+                if sort_direction == "asc"
+                else Employee.employee_code.desc()
+            )
+        else:
+            if registered_faces_first:
+                order_by.append(missing_face_profile.asc())
+            if sort_employee_code:
+                order_by.append(Employee.employee_code.asc())
+            else:
+                order_by.extend((Employee.created_at.desc(), Employee.employee_code.asc()))
         employees = db.scalars(
             select(Employee)
             .where(*filters)
-            .order_by(Employee.created_at.desc(), Employee.employee_code)
+            .order_by(*order_by)
             .offset((page - 1) * page_size)
             .limit(page_size)
         ).all()

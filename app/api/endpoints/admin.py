@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import Literal
+
 from fastapi import APIRouter, Depends, Query, Request, Response, status
 from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
@@ -23,6 +25,8 @@ from app.schemas.admin import (
     AdminEmployeeListResponse,
     AdminEmployeeResponse,
     AdminEmployeeUpdate,
+    EmployeeDirectoryListResponse,
+    EmployeeSummaryResponse,
     ModelSettingsReset,
     ModelSettingsUpdate,
 )
@@ -47,13 +51,115 @@ async def list_users(
     http_request: Request,
     search: str = "",
     is_active: bool | None = None,
+    registered_faces_first: bool = False,
+    sort_employee_code: bool = False,
+    sort_by: Literal["employee_code", "face_status"] | None = None,
+    sort_direction: Literal["asc", "desc"] = "asc",
+    face_status: Literal["all", "registered", "missing"] = "all",
     page: int = Query(1, ge=1),
     page_size: int = Query(25, ge=1, le=100),
     db: Session = Depends(get_db),
     current_employee: Employee | None = None,
 ):
     return admin_employee_service.list_employees(
-        db, search=search, is_active=is_active, page=page, page_size=page_size
+        db,
+        search=search,
+        is_active=is_active,
+        page=page,
+        page_size=page_size,
+        registered_faces_first=registered_faces_first,
+        sort_employee_code=sort_employee_code,
+        sort_by=sort_by,
+        sort_direction=sort_direction,
+        face_status=face_status,
+    )
+
+
+@router.get("/super-admin/users", response_model=AdminEmployeeListResponse)
+@active_employee_required
+@roles_required("super_admin")
+async def list_super_admin_users(
+    http_request: Request,
+    search: str = "",
+    is_active: bool | None = None,
+    registered_faces_first: bool = False,
+    sort_employee_code: bool = False,
+    sort_by: Literal["employee_code", "face_status"] | None = None,
+    sort_direction: Literal["asc", "desc"] = "asc",
+    face_status: Literal["all", "registered", "missing"] = "all",
+    page: int = Query(1, ge=1),
+    page_size: int = Query(25, ge=1, le=100),
+    db: Session = Depends(get_db),
+    current_employee: Employee | None = None,
+):
+    return admin_employee_service.list_employees(
+        db,
+        search=search,
+        is_active=is_active,
+        page=page,
+        page_size=page_size,
+        registered_faces_first=registered_faces_first,
+        sort_employee_code=sort_employee_code,
+        sort_by=sort_by,
+        sort_direction=sort_direction,
+        face_status=face_status,
+        include_super_admin=True,
+    )
+
+
+@router.get("/employee-directory", response_model=EmployeeDirectoryListResponse)
+@active_employee_required
+async def employee_directory(
+    http_request: Request,
+    search: str = "",
+    sort_by: Literal["employee_code", "face_status"] | None = None,
+    sort_direction: Literal["asc", "desc"] = "asc",
+    face_status: Literal["all", "registered", "missing"] = "all",
+    page: int = Query(1, ge=1),
+    page_size: int = Query(25, ge=1, le=100),
+    db: Session = Depends(get_db),
+    current_employee: Employee | None = None,
+):
+    return admin_employee_service.list_employees(
+        db,
+        search=search,
+        is_active=True,
+        page=page,
+        page_size=page_size,
+        sort_by=sort_by,
+        sort_direction=sort_direction,
+        face_status=face_status,
+    )
+
+
+@router.get("/employee-summary", response_model=EmployeeSummaryResponse)
+@active_employee_required
+async def employee_summary(
+    http_request: Request,
+    active_only: bool = True,
+    db: Session = Depends(get_db),
+    current_employee: Employee | None = None,
+):
+    return admin_employee_service.employee_summary(
+        db,
+        is_active=True if active_only else None,
+    )
+
+
+@router.get("/super-admin/employee-summary", response_model=EmployeeSummaryResponse)
+@active_employee_required
+@roles_required("super_admin")
+async def super_admin_employee_summary(
+    http_request: Request,
+    active_only: bool = True,
+    db: Session = Depends(get_db),
+    current_employee: Employee | None = None,
+):
+    return admin_employee_service.employee_summary(
+        db,
+        is_active=True if active_only else None,
+        include_super_admin=not active_only,
+        excluded_include_super_admin=True,
     )
 
 
@@ -170,7 +276,7 @@ async def delete_user_face_profile(
 
 @router.get("/admin/model-settings")
 @active_employee_required
-@roles_required("admin", "super_admin")
+@roles_required("super_admin")
 async def admin_model_settings(
     http_request: Request,
     mode: str | None = None,
@@ -182,7 +288,7 @@ async def admin_model_settings(
 
 @router.patch("/admin/model-settings/{group}/{model_key}")
 @active_employee_required
-@roles_required("admin", "super_admin")
+@roles_required("super_admin")
 async def patch_model_settings(
     group: str,
     model_key: str,
@@ -203,7 +309,7 @@ async def patch_model_settings(
 
 @router.post("/admin/model-settings/reset")
 @active_employee_required
-@roles_required("admin", "super_admin")
+@roles_required("super_admin")
 async def reset_admin_model_settings(
     payload: ModelSettingsReset,
     http_request: Request,

@@ -137,20 +137,24 @@ class EmployeeAuthService:
     def authenticate_employee(
         db: Session, employee_code: str, password: str, request: Request | None = None
     ) -> Employee:
-        """Authenticate an employee with a 6-digit code and 6-character password."""
-        code = (employee_code or "").strip()
+        """Authenticate an employee with a 6-character code and password."""
+        code = (employee_code or "").strip().upper()
         supplied_password = password or ""
 
-        if len(code) != 6 or not code.isdigit():
+        if len(code) != 6 or not code.isascii() or not code.isalnum():
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="กรุณากรอกรหัสพนักงาน 6 หลัก",
+                detail="กรุณากรอกรหัสพนักงาน 6 ตัว โดยใช้ตัวอักษรหรือตัวเลข",
             )
 
-        if len(supplied_password) != 6:
+        if (
+            len(supplied_password) != 6
+            or not supplied_password.isascii()
+            or not supplied_password.isdigit()
+        ):
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="กรุณากรอกรหัสผ่าน 6 ตัวอักษร",
+                detail="กรุณากรอกรหัสผ่านเป็นตัวเลข 6 หลัก",
             )
 
         employee = (
@@ -233,7 +237,7 @@ class EmployeeAuthService:
             )
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="รหัสผ่านไม่ถูกต้อง กรุณาตรวจสอบรหัสผ่าน 6 ตัวอักษรอีกครั้ง",
+                detail="รหัสผ่านไม่ถูกต้อง กรุณาตรวจสอบรหัสผ่านตัวเลข 6 หลักอีกครั้ง",
             )
 
         audit_logger.log(action=LOGIN_SUCCESS.format(resource="Employee"))
