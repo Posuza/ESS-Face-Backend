@@ -90,7 +90,7 @@ class ClientAuthService:
         if not app:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Invalid client application.",
+                detail="ไม่พบแอปพลิเคชันไคลเอนต์ หรือแอปพลิเคชันถูกปิดใช้งาน",
             )
         return app
 
