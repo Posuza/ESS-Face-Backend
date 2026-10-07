@@ -45,7 +45,14 @@ The API will be available at `http://127.0.0.1:8000` by default.
 Create the client-application table once for the configured database:
 
 ```bash
-python scripts/create_app_registrations_table.py
+python scripts/create_auth_app_registry_table.py
+```
+
+Existing installations using the previous table name can preserve their rows
+and rename it in place:
+
+```bash
+python scripts/rename_auth_app_registry_table.py
 ```
 
 Super Admins can register an application name with `POST

@@ -17,18 +17,18 @@ TEST_APPS = (
 
 def main() -> None:
     from app.core.db.engine import SessionLocal, engine
-    from app.models.app_registrations import AppRegistration
+    from app.models.auth_app_registry import AuthAppRegistry
 
-    AppRegistration.__table__.create(bind=engine, checkfirst=True)
+    AuthAppRegistry.__table__.create(bind=engine, checkfirst=True)
     with SessionLocal() as db:
         for app_name, public_key in TEST_APPS:
             app = (
-                db.query(AppRegistration)
-                .filter(AppRegistration.app_name == app_name)
+                db.query(AuthAppRegistry)
+                .filter(AuthAppRegistry.app_name == app_name)
                 .first()
             )
             if not app:
-                app = AppRegistration(
+                app = AuthAppRegistry(
                     app_name=app_name,
                     public_key=public_key,
                     private_key=secrets.token_urlsafe(48),

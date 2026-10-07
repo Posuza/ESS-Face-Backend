@@ -8,10 +8,10 @@ from sqlalchemy.orm import Mapped, mapped_column
 from app.core.orm import Base
 
 
-class AppRegistration(Base):
+class AuthAppRegistry(Base):
     """External application allowed to request employee verification tickets."""
 
-    __tablename__ = "app_registrations"
+    __tablename__ = "auth_app_registry"
 
     app_registration_id: Mapped[int] = mapped_column(
         Integer,

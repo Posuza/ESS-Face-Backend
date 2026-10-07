@@ -2,7 +2,7 @@
 
 from . import (
     addresses,
-    app_registrations,
+    auth_app_registry,
     audit_logs,
     departments,
     districts,
@@ -29,7 +29,7 @@ from . import (
 
 __all__ = [
     "addresses",
-    "app_registrations",
+    "auth_app_registry",
     "audit_logs",
     "departments",
     "districts",

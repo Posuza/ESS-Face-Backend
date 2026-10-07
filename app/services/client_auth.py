@@ -32,7 +32,7 @@ from app.core.security.client_ticket import (
     issue_client_ticket,
     verify_client_ticket,
 )
-from app.models.app_registrations import AppRegistration
+from app.models.auth_app_registry import AuthAppRegistry
 from app.models.employees import Employee
 from app.schemas.client_auth import AppRegistrationCreate, CLIENT_PUBLIC_KEY_PATTERN
 from app.services.auth import employee_auth_service
@@ -50,10 +50,10 @@ class ClientAuthService:
     def register_application(
         db: Session,
         payload: AppRegistrationCreate,
-    ) -> AppRegistration:
+    ) -> AuthAppRegistry:
         existing = (
-            db.query(AppRegistration)
-            .filter(AppRegistration.app_name == payload.app_name)
+            db.query(AuthAppRegistry)
+            .filter(AuthAppRegistry.app_name == payload.app_name)
             .first()
         )
         if existing:
@@ -62,7 +62,7 @@ class ClientAuthService:
                 detail="An application with this name is already registered.",
             )
 
-        app = AppRegistration(
+        app = AuthAppRegistry(
             app_name=payload.app_name,
             # Twelve random bytes encode to exactly 16 URL-safe characters.
             public_key=secrets.token_urlsafe(12),
@@ -81,7 +81,7 @@ class ClientAuthService:
         return app
 
     @staticmethod
-    def _registered_app(db: Session, public_key: str) -> AppRegistration:
+    def _registered_app(db: Session, public_key: str) -> AuthAppRegistry:
         if re.fullmatch(CLIENT_PUBLIC_KEY_PATTERN, public_key) is None:
             audit_logger.log(action=CLIENT_AUTH_APP_REJECTED)
             raise HTTPException(
@@ -89,10 +89,10 @@ class ClientAuthService:
                 detail="รหัสแอปพลิเคชันไคลเอนต์ต้องมี 16 ตัวอักษร",
             )
         app = (
-            db.query(AppRegistration)
+            db.query(AuthAppRegistry)
             .filter(
-                AppRegistration.public_key == public_key,
-                AppRegistration.is_active.is_(True),
+                AuthAppRegistry.public_key == public_key,
+                AuthAppRegistry.is_active.is_(True),
             )
             .first()
         )
@@ -105,7 +105,7 @@ class ClientAuthService:
         return app
 
     @staticmethod
-    def _ticket_response(app: AppRegistration, employee_id: str) -> dict:
+    def _ticket_response(app: AuthAppRegistry, employee_id: str) -> dict:
         return {"ticket": issue_client_ticket(employee_id, app.private_key)}
 
     @staticmethod
@@ -123,7 +123,7 @@ class ClientAuthService:
 
     @staticmethod
     def _log_client_login(
-        app: AppRegistration,
+        app: AuthAppRegistry,
         method: str,
         employee_code: str,
         status_code: int | None = None,
