@@ -33,3 +33,15 @@ CLIENT_AUTH_PASSWORD_RECOVERY_FAILED: Final[str] = (
 CLIENT_AUTH_LOGOUT: Final[str] = (
     "Client logout notification (app={app_name}, code={employee_code})"
 )
+CLIENT_AUTH_LOGIN_SUCCESS: Final[str] = (
+    "Client login successful (app={app_name}, method={method}, code={employee_code})"
+)
+CLIENT_AUTH_LOGIN_FAILED: Final[str] = (
+    "Client login failed (app={app_name}, method={method}, code={employee_code}, status={status_code})"
+)
+CLIENT_AUTH_TICKET_VERIFY_SUCCESS: Final[str] = (
+    "Client ticket verification successful (app={app_name}, code={employee_code})"
+)
+CLIENT_AUTH_TICKET_VERIFY_FAILED: Final[str] = (
+    "Client ticket verification failed (app={app_name})"
+)

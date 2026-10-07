@@ -46,6 +46,7 @@ def issue_password_ticket(
 @router.post("/tickets/face", response_model=ClientTicketIssued)
 def issue_face_ticket(
     payload: ClientFaceTicketRequest,
+    http_request: Request,
     db: Session = Depends(get_db),
 ) -> ClientTicketIssued:
     return ClientTicketIssued(
@@ -54,6 +55,7 @@ def issue_face_ticket(
             public_key=payload.public_key,
             employee_code=payload.employee_code,
             image_data_url=payload.image_data_url,
+            request=http_request,
         )
     )
 
@@ -61,6 +63,7 @@ def issue_face_ticket(
 @router.post("/tickets/verify", response_model=ClientTicketVerifyResponse)
 def verify_ticket(
     payload: ClientTicketVerifyRequest,
+    http_request: Request,
     db: Session = Depends(get_db),
 ) -> ClientTicketVerifyResponse:
     return ClientTicketVerifyResponse(
@@ -68,6 +71,7 @@ def verify_ticket(
             db=db,
             public_key=payload.public_key,
             ticket=payload.ticket,
+            request=http_request,
         )
     )
 
