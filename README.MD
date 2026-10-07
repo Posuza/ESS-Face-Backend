@@ -50,7 +50,8 @@ python scripts/create_app_registrations_table.py
 
 Super Admins can register an application name with `POST
 /api/v1/admin/client-applications`. The response returns the generated public
-key; the private key never leaves this backend. Ticket lifetime is controlled
+key as a 16-character URL-safe identifier; the private key never leaves this
+backend. Existing registered keys remain valid. Ticket lifetime is controlled
 globally by `CLIENT_TICKET_TTL_SECONDS` (30 seconds by default). Password or
 face login can issue an encrypted ticket through
 `/api/v1/client-auth/tickets/password` or `/api/v1/client-auth/tickets/face`.

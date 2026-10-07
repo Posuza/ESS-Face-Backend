@@ -63,7 +63,8 @@ class ClientAuthService:
 
         app = AppRegistration(
             app_name=payload.app_name,
-            public_key=secrets.token_urlsafe(32),
+            # Twelve random bytes encode to exactly 16 URL-safe characters.
+            public_key=secrets.token_urlsafe(12),
             private_key=secrets.token_urlsafe(48),
         )
         db.add(app)
