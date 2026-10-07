@@ -10,8 +10,8 @@ if str(BACKEND_ROOT) not in sys.path:
 
 
 TEST_APPS = (
-    ("SDK Test App One", "ess-test-app-one-public-key-v1"),
-    ("SDK Test App Two", "ess-test-app-two-public-key-v1"),
+    ("ESSMO", "Tg2wbdIU3C0JRfSX"),
+    ("ESS Report", "2Bq2BxIiUsNukyiX"),
 )
 
 

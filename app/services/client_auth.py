@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 import secrets
 
 from fastapi import HTTPException, Request, status
@@ -33,7 +34,7 @@ from app.core.security.client_ticket import (
 )
 from app.models.app_registrations import AppRegistration
 from app.models.employees import Employee
-from app.schemas.client_auth import AppRegistrationCreate
+from app.schemas.client_auth import AppRegistrationCreate, CLIENT_PUBLIC_KEY_PATTERN
 from app.services.auth import employee_auth_service
 from app.services.face_verify import face_verify_service
 
@@ -81,6 +82,12 @@ class ClientAuthService:
 
     @staticmethod
     def _registered_app(db: Session, public_key: str) -> AppRegistration:
+        if re.fullmatch(CLIENT_PUBLIC_KEY_PATTERN, public_key) is None:
+            audit_logger.log(action=CLIENT_AUTH_APP_REJECTED)
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="รหัสแอปพลิเคชันไคลเอนต์ต้องมี 16 ตัวอักษร",
+            )
         app = (
             db.query(AppRegistration)
             .filter(

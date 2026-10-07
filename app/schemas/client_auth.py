@@ -6,6 +6,8 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from app.schemas.auth import EmployeeInfo
 
+CLIENT_PUBLIC_KEY_PATTERN = r"^[A-Za-z0-9_-]{16}$"
+
 
 class ClientPasswordLoginRequest(BaseModel):
     model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
@@ -69,11 +71,15 @@ class AppRegistrationCreated(BaseModel):
 
 
 class ClientPasswordTicketRequest(ClientPasswordLoginRequest):
-    public_key: str = Field(..., min_length=1, max_length=128)
+    public_key: str = Field(
+        ..., min_length=16, max_length=16, pattern=CLIENT_PUBLIC_KEY_PATTERN
+    )
 
 
 class ClientFaceTicketRequest(ClientFaceLoginRequest):
-    public_key: str = Field(..., min_length=1, max_length=128)
+    public_key: str = Field(
+        ..., min_length=16, max_length=16, pattern=CLIENT_PUBLIC_KEY_PATTERN
+    )
 
 
 class ClientTicketIssued(BaseModel):
@@ -85,7 +91,9 @@ class ClientTicketIssued(BaseModel):
 class ClientTicketVerifyRequest(BaseModel):
     model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
 
-    public_key: str = Field(..., min_length=1, max_length=128)
+    public_key: str = Field(
+        ..., min_length=16, max_length=16, pattern=CLIENT_PUBLIC_KEY_PATTERN
+    )
     ticket: str = Field(..., min_length=32, max_length=4096)
 
 
@@ -98,7 +106,9 @@ class ClientTicketVerifyResponse(BaseModel):
 class ClientLogoutRequest(BaseModel):
     model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
 
-    public_key: str = Field(..., min_length=1, max_length=128)
+    public_key: str = Field(
+        ..., min_length=16, max_length=16, pattern=CLIENT_PUBLIC_KEY_PATTERN
+    )
     employee_id: str = Field(..., min_length=6, max_length=6)
 
 
