@@ -69,11 +69,11 @@ class AppRegistrationCreated(BaseModel):
 
 
 class ClientPasswordTicketRequest(ClientPasswordLoginRequest):
-    public_key: str = Field(..., min_length=16, max_length=128)
+    public_key: str = Field(..., min_length=1, max_length=128)
 
 
 class ClientFaceTicketRequest(ClientFaceLoginRequest):
-    public_key: str = Field(..., min_length=16, max_length=128)
+    public_key: str = Field(..., min_length=1, max_length=128)
 
 
 class ClientTicketIssued(BaseModel):
@@ -85,7 +85,7 @@ class ClientTicketIssued(BaseModel):
 class ClientTicketVerifyRequest(BaseModel):
     model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
 
-    public_key: str = Field(..., min_length=16, max_length=128)
+    public_key: str = Field(..., min_length=1, max_length=128)
     ticket: str = Field(..., min_length=32, max_length=4096)
 
 
@@ -98,7 +98,7 @@ class ClientTicketVerifyResponse(BaseModel):
 class ClientLogoutRequest(BaseModel):
     model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
 
-    public_key: str = Field(..., min_length=16, max_length=128)
+    public_key: str = Field(..., min_length=1, max_length=128)
     employee_id: str = Field(..., min_length=6, max_length=6)
 
 
