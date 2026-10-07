@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 
 from app.api.dependencies import active_employee_required, roles_required
 from app.core.shared.db.session import get_db
-from app.models.main.employees import Employee
+from app.models.auth.employees import Employee
 from app.schemas.sdk.auth import AppRegistrationCreate, AppRegistrationCreated
 from app.services.sdk.auth import client_auth_service
 

@@ -5,14 +5,14 @@ from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 
 from app.core.shared.db.session import get_db
-from app.schemas.main.face_verify import (
+from app.schemas.auth.face_verify import (
     FaceEnrollRequest,
     FaceEnrollResponse,
     EmployeeLookupResponse,
     FaceVerifyRequest,
     FaceVerifyResponse,
 )
-from app.services.main.face_verify import face_verify_service
+from app.services.auth.face_verify import face_verify_service
 
 router = APIRouter()
 

@@ -28,7 +28,7 @@ from app.core.shared.media_storage import (
     normalize_face_image_key,
     resolve_face_image_path,
 )
-from app.core.main.registries import (
+from app.core.auth.registries import (
     FACE_ENROLL_ATTEMPT,
     FACE_ENROLL_SUCCESS,
     FACE_ERROR_ACCOUNT_INACTIVE,
@@ -43,9 +43,9 @@ from app.core.main.registries import (
     FACE_VERIFY_FAILED,
     FACE_VERIFY_SUCCESS,
 )
-from app.models.main.employees import Employee
-from app.schemas.main.face_verify import FaceEnrollRequest, FaceVerifyRequest
-from app.services.main.auth import employee_auth_service
+from app.models.auth.employees import Employee
+from app.schemas.auth.face_verify import FaceEnrollRequest, FaceVerifyRequest
+from app.services.auth.auth import employee_auth_service
 
 
 _attempts: dict[str, list[float]] = {}

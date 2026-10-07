@@ -1,4 +1,4 @@
-"""ORM models owned by the main ESS application."""
+"""ORM models owned by the ESS application and authentication domain."""
 
 from . import (
     addresses,

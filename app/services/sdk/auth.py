@@ -26,17 +26,17 @@ from app.core.sdk.registries import (
     CLIENT_AUTH_TICKET_VERIFY_FAILED,
     CLIENT_AUTH_TICKET_VERIFY_SUCCESS,
 )
-from app.schemas.main.face_verify import FaceVerifyRequest
+from app.schemas.auth.face_verify import FaceVerifyRequest
 from app.core.sdk.security.client_ticket import (
     InvalidClientTicket,
     issue_client_ticket,
     verify_client_ticket,
 )
 from app.models.sdk.auth_app_registry import AuthAppRegistry
-from app.models.main.employees import Employee
+from app.models.auth.employees import Employee
 from app.schemas.sdk.auth import AppRegistrationCreate, CLIENT_PUBLIC_KEY_PATTERN
-from app.services.main.auth import employee_auth_service
-from app.services.main.face_verify import face_verify_service
+from app.services.auth.auth import employee_auth_service
+from app.services.auth.face_verify import face_verify_service
 
 
 class ClientAuthService:

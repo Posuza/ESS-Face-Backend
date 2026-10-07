@@ -1,1 +1,1 @@
-"""Infrastructure shared by the main application and SDK authentication."""
+"""Infrastructure shared by ESS authentication and SDK authentication."""

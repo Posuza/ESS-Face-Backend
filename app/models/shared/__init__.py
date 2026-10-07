@@ -1,4 +1,4 @@
-"""ORM models shared by main and SDK flows."""
+"""ORM models shared by ESS authentication and SDK flows."""
 
 from . import audit_logs
 

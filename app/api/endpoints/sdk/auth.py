@@ -20,7 +20,7 @@ from app.schemas.sdk.auth import (
     ClientTicketVerifyResponse,
 )
 from app.services.sdk.auth import client_auth_service
-from app.services.main.model_settings import get_frontend_model_settings
+from app.services.auth.model_settings import get_frontend_model_settings
 
 
 router = APIRouter()

@@ -1,4 +1,4 @@
-"""Messages shared by main and SDK infrastructure."""
+"""Messages shared by ESS authentication and SDK infrastructure."""
 
 from .backend_message import *  # noqa: F403
 from .client_message import *  # noqa: F403

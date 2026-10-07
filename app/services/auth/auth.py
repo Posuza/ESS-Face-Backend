@@ -6,7 +6,7 @@ from fastapi import HTTPException, Request, status
 from sqlalchemy.orm import Session
 
 from app.core.shared.audit_logger import audit_logger, set_audit_context
-from app.core.main.registries import (
+from app.core.auth.registries import (
     LOGIN_ATTEMPT,
     LOGIN_FAILED_REASON,
     LOGIN_SUCCESS,
@@ -14,14 +14,14 @@ from app.core.main.registries import (
     REGISTER,
     REGISTER_DUPLICATE,
 )
-from app.models.main.departments import Department
-from app.models.main.divisions import Division
-from app.models.main.employees import Employee
-from app.models.main.fields import FieldModel
-from app.models.main.name_prefixs import NamePrefix
-from app.models.main.positions import Position
-from app.models.main.roles import Role
-from app.models.main.routes import Route
+from app.models.auth.departments import Department
+from app.models.auth.divisions import Division
+from app.models.auth.employees import Employee
+from app.models.auth.fields import FieldModel
+from app.models.auth.name_prefixs import NamePrefix
+from app.models.auth.positions import Position
+from app.models.auth.roles import Role
+from app.models.auth.routes import Route
 
 # ─────────────────────────────────────────────────────────────────────────────
 # EmployeeAuthService

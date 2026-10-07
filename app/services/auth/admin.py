@@ -13,7 +13,7 @@ from app.core.shared.media_storage import (
     normalize_face_image_key,
     resolve_face_image_path,
 )
-from app.core.main.registries import (
+from app.core.auth.registries import (
     ADMIN_EMPLOYEE_CREATE_SUCCESS,
     ADMIN_EMPLOYEE_DELETE_SUCCESS,
     ADMIN_EMPLOYEE_UPDATE_SUCCESS,
@@ -25,16 +25,16 @@ from app.core.main.registries import (
     ADMIN_ERROR_FACE_PROFILE_NOT_FOUND,
     ADMIN_FACE_PROFILE_DELETE_SUCCESS,
 )
-from app.models.main.departments import Department
-from app.models.main.divisions import Division
-from app.models.main.employees import Employee
-from app.models.main.fields import FieldModel
-from app.models.main.name_prefixs import NamePrefix
-from app.models.main.positions import Position
-from app.models.main.roles import Role
-from app.models.main.routes import Route
-from app.models.main.shifts import Shift
-from app.schemas.main.admin import AdminEmployeeCreate, AdminEmployeeUpdate
+from app.models.auth.departments import Department
+from app.models.auth.divisions import Division
+from app.models.auth.employees import Employee
+from app.models.auth.fields import FieldModel
+from app.models.auth.name_prefixs import NamePrefix
+from app.models.auth.positions import Position
+from app.models.auth.roles import Role
+from app.models.auth.routes import Route
+from app.models.auth.shifts import Shift
+from app.schemas.auth.admin import AdminEmployeeCreate, AdminEmployeeUpdate
 
 
 def _employee_or_404(db: Session, employee_code: str) -> Employee:

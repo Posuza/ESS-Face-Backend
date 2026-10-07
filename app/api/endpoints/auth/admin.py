@@ -13,14 +13,14 @@ from app.api.dependencies import (
 )
 from app.core.shared.audit_logger import audit_logger
 from app.core.shared.db.session import get_db
-from app.services.main.model_settings import (
+from app.services.auth.model_settings import (
     get_frontend_model_settings,
     get_model_settings,
     reset_model_settings,
     update_model_settings,
 )
-from app.models.main.employees import Employee
-from app.schemas.main.admin import (
+from app.models.auth.employees import Employee
+from app.schemas.auth.admin import (
     AdminEmployeeCreate,
     AdminEmployeeListResponse,
     AdminEmployeeResponse,
@@ -30,10 +30,10 @@ from app.schemas.main.admin import (
     ModelSettingsReset,
     ModelSettingsUpdate,
 )
-from app.schemas.main.face_verify import FaceEnrollRequest, FaceEnrollResponse
-from app.core.main.registries import ADMIN_FACE_PROFILE_REPLACE_SUCCESS
-from app.services.main.admin import admin_employee_service
-from app.services.main.face_verify import face_verify_service
+from app.schemas.auth.face_verify import FaceEnrollRequest, FaceEnrollResponse
+from app.core.auth.registries import ADMIN_FACE_PROFILE_REPLACE_SUCCESS
+from app.services.auth.admin import admin_employee_service
+from app.services.auth.face_verify import face_verify_service
 
 
 router = APIRouter()

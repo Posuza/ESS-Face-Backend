@@ -1,1 +1,1 @@
-"""Business services grouped by main, SDK, and shared ownership."""
+"""Business services grouped by auth, SDK, and shared ownership."""

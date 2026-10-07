@@ -4,7 +4,7 @@ from datetime import datetime
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from app.schemas.main.auth import EmployeeInfo
+from app.schemas.auth.auth import EmployeeInfo
 
 CLIENT_PUBLIC_KEY_PATTERN = r"^[A-Za-z0-9_-]{16}$"
 

@@ -21,7 +21,7 @@ from app.core.shared.config.model_settings import (
     read_model_settings_document,
     validate_model_settings_document,
 )
-from app.core.main.registries import (
+from app.core.auth.registries import (
     MODEL_SETTINGS_ERROR_FIXED_SETTING,
     MODEL_SETTINGS_ERROR_INTEGER_SETTING,
     MODEL_SETTINGS_ERROR_RANGE_SETTING,

@@ -33,10 +33,10 @@ from app.core.shared.registries.dependencies_message import (
     ACCOUNT_INACTIVE,
     EMPLOYEE_NOT_FOUND,
 )
-from app.core.main.security.request_actor import extract_actor_employee_code
-from app.models.main.employee_permissions import EmployeePermission
-from app.models.main.employees import Employee
-from app.models.main.roles import Role
+from app.core.auth.security.request_actor import extract_actor_employee_code
+from app.models.auth.employee_permissions import EmployeePermission
+from app.models.auth.employees import Employee
+from app.models.auth.roles import Role
 
 USER_MANAGER_EMPLOYEE_CODES = {"680708", "622057", "632070", "622062"}
 

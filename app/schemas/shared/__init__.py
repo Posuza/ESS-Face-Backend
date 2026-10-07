@@ -1,4 +1,4 @@
-"""Schemas shared by main and SDK services."""
+"""Schemas shared by ESS authentication and SDK services."""
 
 from . import audit_logs
 

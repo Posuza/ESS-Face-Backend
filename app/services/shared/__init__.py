@@ -1,1 +1,1 @@
-"""Business services shared by main and SDK flows."""
+"""Business services shared by ESS authentication and SDK flows."""

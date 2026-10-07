@@ -1,4 +1,4 @@
-"""Request and response models for the main ESS application."""
+"""Request and response models for ESS-side application behavior."""
 
 from . import admin, auth, face_verify
 

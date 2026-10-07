@@ -6,8 +6,8 @@ from sqlalchemy.orm import Session
 from app.core.shared.audit_logger import set_audit_context
 from app.core.shared.db.session import get_db
 
-from app.models.main.employees import Employee
-from app.schemas.main.auth import (
+from app.models.auth.employees import Employee
+from app.schemas.auth.auth import (
     EmployeeLogin,
     EmployeeRegister,
     EmployeeResponse,
@@ -15,7 +15,7 @@ from app.schemas.main.auth import (
     LogoutRequest,
     LogoutResponse,
 )
-from app.services.main.auth import employee_auth_service
+from app.services.auth.auth import employee_auth_service
 
 router = APIRouter()
 
