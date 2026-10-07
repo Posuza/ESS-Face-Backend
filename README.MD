@@ -11,6 +11,10 @@ This is the backend API for the ESS MO (Employee Self Service - Ministry of Orga
 
 ## Development Guide
 
+Backend modules are separated into `main`, `sdk`, and `shared` ownership
+folders within each technical layer. See [ARCHITECTURE.md](ARCHITECTURE.md)
+before adding endpoints, schemas, services, models, or core infrastructure.
+
 ### Prerequisites
 - Python 3.9 or newer
 - (Recommended) Virtual environment tool: `venv`, `virtualenv`, or `conda`

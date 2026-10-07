@@ -11,7 +11,7 @@ if str(BACKEND_ROOT) not in sys.path:
 
 
 def main() -> None:
-    from app.core.db.engine import engine
+    from app.core.shared.db.engine import engine
 
     tables = set(inspect(engine).get_table_names())
     if "auth_app_registry" in tables:

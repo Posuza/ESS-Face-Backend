@@ -9,8 +9,8 @@ if str(BACKEND_ROOT) not in sys.path:
 
 
 def main() -> None:
-    from app.core.db.engine import engine
-    from app.models.auth_app_registry import AuthAppRegistry
+    from app.core.shared.db.engine import engine
+    from app.models.sdk.auth_app_registry import AuthAppRegistry
 
     AuthAppRegistry.__table__.create(bind=engine, checkfirst=True)
     print("auth_app_registry table is ready")

@@ -1,15 +1,5 @@
-"""Schema package — Pydantic request/response models."""
+"""Pydantic contracts grouped by main, SDK, and shared ownership."""
 
-from . import (
-    audit_logs,
-    auth,
-    face_verify,
-    admin,
-)
+from . import main, sdk, shared
 
-__all__ = [
-    "admin",
-    "audit_logs",
-    "auth",
-    "face_verify",
-]
+__all__ = ["main", "sdk", "shared"]

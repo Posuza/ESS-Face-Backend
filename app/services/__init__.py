@@ -1,1 +1,1 @@
-"""Service layer — business logic."""
+"""Business services grouped by main, SDK, and shared ownership."""

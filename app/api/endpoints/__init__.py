@@ -1,10 +1,10 @@
 from fastapi import APIRouter
 
-from .auth import router as auth_router
-from .face import router as face_router
-from .admin import router as admin_router
-from .client_auth import router as client_auth_router
-from .client_applications import router as client_applications_router
+from .main.admin import router as admin_router
+from .main.auth import router as auth_router
+from .main.face import router as face_router
+from .sdk.applications import router as client_applications_router
+from .sdk.auth import router as client_auth_router
 
 api_router = APIRouter()
 

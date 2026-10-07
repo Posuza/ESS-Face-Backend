@@ -8,8 +8,8 @@ from starlette.types import ASGIApp, Receive, Scope, Send
 
 from app import models as models  # noqa: F401
 from app.api.endpoints import api_router
-from app.core.audit_logger import clear_audit_context, set_audit_context
-from app.core.db.db_error_handler import DatabaseErrorMiddleware
+from app.core.shared.audit_logger import clear_audit_context, set_audit_context
+from app.core.shared.db.db_error_handler import DatabaseErrorMiddleware
 
 _logger = logging.getLogger(__name__)
 

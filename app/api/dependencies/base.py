@@ -24,19 +24,19 @@ from typing import List, Optional
 from fastapi import Depends, HTTPException, Request, status
 from sqlalchemy.orm import Session
 
-from app.core.audit_logger import audit_logger, set_audit_context
-from app.core.db.session import get_db
+from app.core.shared.audit_logger import audit_logger, set_audit_context
+from app.core.shared.db.session import get_db
 
-from app.core.registries.dependencies_message import (
+from app.core.shared.registries.dependencies_message import (
     ACCESS_DENIED_PERMISSION,
     ACCESS_DENIED_ROLE,
     ACCOUNT_INACTIVE,
     EMPLOYEE_NOT_FOUND,
 )
-from app.core.security.request_actor import extract_actor_employee_code
-from app.models.employee_permissions import EmployeePermission
-from app.models.employees import Employee
-from app.models.roles import Role
+from app.core.main.security.request_actor import extract_actor_employee_code
+from app.models.main.employee_permissions import EmployeePermission
+from app.models.main.employees import Employee
+from app.models.main.roles import Role
 
 USER_MANAGER_EMPLOYEE_CODES = {"680708", "622057", "632070", "622062"}
 

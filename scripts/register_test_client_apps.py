@@ -16,8 +16,8 @@ TEST_APPS = (
 
 
 def main() -> None:
-    from app.core.db.engine import SessionLocal, engine
-    from app.models.auth_app_registry import AuthAppRegistry
+    from app.core.shared.db.engine import SessionLocal, engine
+    from app.models.sdk.auth_app_registry import AuthAppRegistry
 
     AuthAppRegistry.__table__.create(bind=engine, checkfirst=True)
     with SessionLocal() as db:

@@ -1,55 +1,5 @@
-"""Import all ORM models so SQLAlchemy can resolve table relationships."""
+"""Import ORM ownership groups so SQLAlchemy resolves every relationship."""
 
-from . import (
-    addresses,
-    auth_app_registry,
-    audit_logs,
-    departments,
-    districts,
-    divisions,
-    employee_permissions,
-    employees,
-    fields,
-    mo_daily_transaction_details,
-    mo_daily_transaction_project,
-    mo_daily_transactions,
-    mo_report_export_job,
-    mo_transaction_discipline_warning,
-    name_prefixs,
-    position_change_logs,
-    positions,
-    postal_codes,
-    provinces,
-    roles,
-    route_change_logs,
-    routes,
-    shifts,
-    sub_districts,
-)
+from . import main, sdk, shared
 
-__all__ = [
-    "addresses",
-    "auth_app_registry",
-    "audit_logs",
-    "departments",
-    "districts",
-    "divisions",
-    "employee_permissions",
-    "employees",
-    "fields",
-    "mo_daily_transaction_details",
-    "mo_daily_transaction_project",
-    "mo_daily_transactions",
-    "mo_report_export_job",
-    "mo_transaction_discipline_warning",
-    "name_prefixs",
-    "position_change_logs",
-    "positions",
-    "postal_codes",
-    "provinces",
-    "roles",
-    "route_change_logs",
-    "routes",
-    "shifts",
-    "sub_districts",
-]
+__all__ = ["main", "sdk", "shared"]
