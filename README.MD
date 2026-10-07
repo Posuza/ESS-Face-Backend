@@ -40,6 +40,26 @@ This is the backend API for the ESS MO (Employee Self Service - Ministry of Orga
 
 The API will be available at `http://127.0.0.1:8000` by default.
 
+### Client application tickets
+
+Create the client-application table once for the configured database:
+
+```bash
+python scripts/create_app_registrations_table.py
+```
+
+Super Admins can register an application name with `POST
+/api/v1/admin/client-applications`. The response returns the generated public
+key; the private key never leaves this backend. Ticket lifetime is controlled
+globally by `CLIENT_TICKET_TTL_SECONDS` (30 seconds by default). Password or
+face login can issue an encrypted ticket through
+`/api/v1/client-auth/tickets/password` or `/api/v1/client-auth/tickets/face`.
+Client SDKs verify it through `/api/v1/client-auth/tickets/verify`, which returns
+only `employee_id`. Redirect handling belongs to the client application. The
+SDK reports browser logout to `POST /api/v1/client-auth/logout` with the client
+public key and verified employee ID so ESS can validate both and write an audit
+entry. This notification does not create or revoke a server session.
+
 ### Import employee JSON data into MySQL
 
 Set `DB_ENGINE=mysql` and the target `DB_HOST`, `DB_PORT`, `DB_USER`,

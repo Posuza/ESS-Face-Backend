@@ -32,6 +32,7 @@ class Settings(BaseSettings):
     SECRET_KEY: str = Field(default="change-this-in-production")
     ALGORITHM: str = Field(default="HS256")
     ACCESS_TOKEN_EXPIRE_MINUTES: int = Field(default=30)
+    CLIENT_TICKET_TTL_SECONDS: int = Field(default=30, ge=5, le=300)
 
     # Frontend
     FRONTEND_URL: str = Field(default="http://localhost:5173")
