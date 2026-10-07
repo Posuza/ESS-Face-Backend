@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session
 from app.core.audit_logger import audit_logger, set_audit_context
 from app.core.config import settings
 from app.core.registries import (
+    CLIENT_AUTH_APP_REJECTED,
     CLIENT_AUTH_FACE_LOGIN_ATTEMPT,
     CLIENT_AUTH_FACE_LOGIN_FAILED,
     CLIENT_AUTH_FACE_LOGIN_SUCCESS,
@@ -88,6 +89,7 @@ class ClientAuthService:
             .first()
         )
         if not app:
+            audit_logger.log(action=CLIENT_AUTH_APP_REJECTED)
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="ไม่พบแอปพลิเคชันไคลเอนต์ หรือแอปพลิเคชันถูกปิดใช้งาน",

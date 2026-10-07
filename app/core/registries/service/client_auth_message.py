@@ -45,3 +45,6 @@ CLIENT_AUTH_TICKET_VERIFY_SUCCESS: Final[str] = (
 CLIENT_AUTH_TICKET_VERIFY_FAILED: Final[str] = (
     "Client ticket verification failed (app={app_name})"
 )
+CLIENT_AUTH_APP_REJECTED: Final[str] = (
+    "Client application rejected (reason=invalid or inactive public key)"
+)
