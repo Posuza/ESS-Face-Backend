@@ -122,6 +122,9 @@ refuses to write into non-empty target tables. To deliberately delete and
 replace that selected data, run it with `--replace` after backing up MySQL.
 
 ### Deployment
+- Backend startup safely creates the `auth_app_registry` and
+  `auth_callback_ip_limits` tables when an upgraded database does not have
+  them yet. Existing tables and rows are preserved.
 - See `/deployment` for Windows service deployment (NSSM/Servy) and production configuration.
 - For Linux, use a process manager like `systemd` or `supervisord`.
 - Set `--host 0.0.0.0` and configure your reverse proxy (Nginx, Caddy, etc.) for production.

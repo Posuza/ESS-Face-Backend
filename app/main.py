@@ -10,6 +10,7 @@ from app import models as models  # noqa: F401
 from app.api.endpoints import api_router
 from app.core.shared.audit_logger import clear_audit_context, set_audit_context
 from app.core.shared.db.db_error_handler import DatabaseErrorMiddleware
+from app.core.shared.db.runtime_schema import ensure_runtime_schema
 
 _logger = logging.getLogger(__name__)
 
@@ -34,7 +35,8 @@ class AuditContextMiddleware:
 
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
-    _logger.info("Application startup: DB metadata auto-sync skipped")
+    ensure_runtime_schema()
+    _logger.info("Application startup: runtime database schema is ready")
     yield
 
 
