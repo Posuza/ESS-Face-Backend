@@ -12,6 +12,7 @@ htmlcov/
 .venv/
 venv/
 env/
+migration-venv/
 
 # Local configuration and secrets
 .env
@@ -20,6 +21,7 @@ env/
 
 # Local databases and runtime output
 *.db
+*.db.backup-*
 *.sqlite
 *.sqlite3
 exports/
