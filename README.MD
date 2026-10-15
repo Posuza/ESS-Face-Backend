@@ -11,9 +11,10 @@ This is the backend API for the ESS MO (Employee Self Service - Ministry of Orga
 
 ## Development Guide
 
-Backend modules are separated into `auth`, `sdk`, and `shared` ownership
-folders within each technical layer. See [ARCHITECTURE.md](ARCHITECTURE.md)
-before adding endpoints, schemas, services, models, or core infrastructure.
+Backend modules are separated into `auth` and `sdk` ownership folders. Shared
+core infrastructure stays in `core/shared`; small cross-cutting modules remain
+at their layer root. See [ARCHITECTURE.md](ARCHITECTURE.md) before adding
+endpoints, schemas, services, models, or core infrastructure.
 
 ### Prerequisites
 - Python 3.9 or newer
@@ -59,8 +60,29 @@ and rename it in place:
 python scripts/rename_auth_app_registry_table.py
 ```
 
-Super Admins can register an application name with `POST
-/api/v1/admin/client-applications`. The response returns the generated public
+Existing registries must add the callback-origin column once:
+
+```bash
+python scripts/add_auth_app_callback_origin.py
+```
+
+Add administrator attribution and the shared callback IP-block table:
+
+```bash
+python scripts/add_auth_app_audit_columns.py --backfill-employee-code ADMIN_CODE
+python scripts/create_auth_callback_ip_limits_table.py
+```
+
+Assign an origin to an existing production registration:
+
+```bash
+python scripts/set_auth_app_callback_origin.py PUBLIC_KEY https://client.example.com
+```
+
+Super Admins register an application name and one exact callback origin with
+`POST /api/v1/admin/client-applications`. HTTPS is required except for loopback
+development origins. Any callback path is accepted only when its parsed scheme,
+host, and port match the registered origin. The response returns the generated public
 key as a mandatory 16-character URL-safe identifier; the private key never
 leaves this backend. Keys with any other length are rejected. Ticket lifetime is controlled
 globally by `CLIENT_TICKET_TTL_SECONDS` (30 seconds by default). Password or
@@ -71,6 +93,19 @@ only `employee_id`. Redirect handling belongs to the client application. The
 SDK reports browser logout to `POST /api/v1/client-auth/logout` with the client
 public key and verified employee ID so ESS can validate both and write an audit
 entry. This notification does not create or revoke a server session.
+
+Rejected callback origins are audited by source IP. Ten failures within five
+minutes block that IP for fifteen minutes by default. The block is stored in
+the database so it applies across workers and survives restarts. Configure the
+policy with `CALLBACK_MAX_FAILED_ATTEMPTS`, `CALLBACK_FAILURE_WINDOW_SECONDS`,
+and `CALLBACK_IP_BLOCK_SECONDS`. Only addresses in `TRUSTED_PROXY_IPS` may
+supply the client IP through `X-Forwarded-For`.
+
+For presence testing, the browser SDK opens
+`/api/v1/client-auth/presence/ws?public_key=...`. The backend logs when the
+client connects, sends a heartbeat, or disconnects, including the source IP,
+origin, and user agent. WebSocket origins must match the origin registered for
+the public key. Presence is diagnostic only and is not authorization.
 
 ### Import employee JSON data into MySQL
 

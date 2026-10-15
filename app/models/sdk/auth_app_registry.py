@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from sqlalchemy import Boolean, DateTime, Integer, String, func, text
+from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, String, func, text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.shared.orm import Base
@@ -23,6 +23,9 @@ class AuthAppRegistry(Base):
         String(128), nullable=False, unique=True, index=True
     )
     private_key: Mapped[str] = mapped_column(String(255), nullable=False)
+    allowed_callback_origin: Mapped[str | None] = mapped_column(
+        String(2048), nullable=True
+    )
     is_active: Mapped[bool] = mapped_column(
         Boolean,
         nullable=False,
@@ -42,4 +45,14 @@ class AuthAppRegistry(Base):
         server_onupdate=text("CURRENT_TIMESTAMP"),
         default=func.now(),
         onupdate=func.now(),
+    )
+    created_by: Mapped[str | None] = mapped_column(
+        String(6),
+        ForeignKey("employees.employee_code"),
+        nullable=True,
+    )
+    updated_by: Mapped[str | None] = mapped_column(
+        String(6),
+        ForeignKey("employees.employee_code"),
+        nullable=True,
     )

@@ -9,7 +9,7 @@ from pydantic import Field
 from pydantic_settings import BaseSettings
 
 
-BACKEND_ROOT = Path(__file__).resolve().parents[3]
+BACKEND_ROOT = Path(__file__).resolve().parents[4]
 ENV_FILE = BACKEND_ROOT / ".env"
 
 # Load the backend's environment file regardless of the process working directory.
@@ -33,9 +33,20 @@ class Settings(BaseSettings):
     ALGORITHM: str = Field(default="HS256")
     ACCESS_TOKEN_EXPIRE_MINUTES: int = Field(default=30)
     CLIENT_TICKET_TTL_SECONDS: int = Field(default=30, ge=5, le=300)
+    CALLBACK_MAX_FAILED_ATTEMPTS: int = Field(default=10, ge=1, le=1000)
+    CALLBACK_FAILURE_WINDOW_SECONDS: int = Field(default=300, ge=10, le=86400)
+    CALLBACK_IP_BLOCK_SECONDS: int = Field(default=900, ge=10, le=86400)
+    TRUSTED_PROXY_IPS: str = Field(default="127.0.0.1,::1")
 
     # Frontend
     FRONTEND_URL: str = Field(default="http://localhost:5173")
+
+    # Email delivery for password recovery and password-change notifications.
+    SMTP_HOST: str = Field(default="smtp.gmail.com")
+    SMTP_PORT: int = Field(default=587)
+    SMTP_USER: str = Field(default="")
+    SMTP_PASS: str = Field(default="")
+    EMAIL_FROM: str = Field(default="")
 
     # MFA
     MFA_ISSUER_NAME: str = Field(default="PBAC-System")

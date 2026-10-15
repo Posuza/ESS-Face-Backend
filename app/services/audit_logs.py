@@ -3,8 +3,8 @@ from typing import Optional
 from sqlalchemy import func, select
 
 from app.core.shared.db.session import get_session
-from app.models.shared.audit_logs import AuditLog
-from app.schemas.shared.audit_logs import AuditLogCreate
+from app.models.audit_logs import AuditLog
+from app.schemas.audit_logs import AuditLogCreate
 
 
 class AuditLogService:

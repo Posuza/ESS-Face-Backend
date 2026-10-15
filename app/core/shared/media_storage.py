@@ -3,10 +3,9 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
-from app.core.shared.config import settings
+from app.core.shared.config import BACKEND_ROOT, settings
 
 
-BACKEND_ROOT = Path(__file__).resolve().parents[2]
 _FACE_IMAGE_FILENAME = re.compile(r"^[A-Za-z0-9_-]+\.(?:jpg|jpeg)$")
 
 

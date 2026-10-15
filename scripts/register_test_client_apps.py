@@ -10,8 +10,8 @@ if str(BACKEND_ROOT) not in sys.path:
 
 
 TEST_APPS = (
-    ("ESSMO", "Tg2wbdIU3C0JRfSX"),
-    ("ESS Report", "2Bq2BxIiUsNukyiX"),
+    ("ESSMO", "Tg2wbdIU3C0JRfSX", "http://127.0.0.1:4101"),
+    ("ESS Report", "2Bq2BxIiUsNukyiX", "http://127.0.0.1:4102"),
 )
 
 
@@ -21,7 +21,7 @@ def main() -> None:
 
     AuthAppRegistry.__table__.create(bind=engine, checkfirst=True)
     with SessionLocal() as db:
-        for app_name, public_key in TEST_APPS:
+        for app_name, public_key, allowed_callback_origin in TEST_APPS:
             app = (
                 db.query(AuthAppRegistry)
                 .filter(AuthAppRegistry.app_name == app_name)
@@ -32,15 +32,17 @@ def main() -> None:
                     app_name=app_name,
                     public_key=public_key,
                     private_key=secrets.token_urlsafe(48),
+                    allowed_callback_origin=allowed_callback_origin,
                 )
                 db.add(app)
             else:
                 app.public_key = public_key
+                app.allowed_callback_origin = allowed_callback_origin
                 app.is_active = True
         db.commit()
 
-    for app_name, public_key in TEST_APPS:
-        print(f"{app_name}: {public_key}")
+    for app_name, public_key, allowed_callback_origin in TEST_APPS:
+        print(f"{app_name}: {public_key} -> {allowed_callback_origin}")
 
 
 if __name__ == "__main__":

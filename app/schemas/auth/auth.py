@@ -97,3 +97,22 @@ class LogoutResponse(BaseModel):
 
 class LogoutRequest(BaseModel):
     employee_code: str = Field(..., min_length=6, max_length=6)
+
+
+class ForgotPasswordRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
+
+    employee_code: str = Field(..., min_length=6, max_length=6)
+    send_plain_password: bool = True
+
+
+class ChangePasswordRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
+
+    employee_code: str = Field(..., min_length=6, max_length=6)
+    old_password: str = Field(..., min_length=6, max_length=6)
+    new_password: str = Field(..., min_length=6, max_length=6)
+
+
+class MessageResponse(BaseModel):
+    message: str

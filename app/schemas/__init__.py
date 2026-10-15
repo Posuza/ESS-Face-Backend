@@ -1,5 +1,5 @@
-"""Pydantic contracts grouped by main, SDK, and shared ownership."""
+"""Pydantic contracts grouped by auth and SDK ownership."""
 
-from . import auth, sdk, shared
+from . import audit_logs, auth, sdk
 
-__all__ = ["auth", "sdk", "shared"]
+__all__ = ["audit_logs", "auth", "sdk"]

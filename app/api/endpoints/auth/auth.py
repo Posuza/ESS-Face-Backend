@@ -8,14 +8,18 @@ from app.core.shared.db.session import get_db
 
 from app.models.auth.employees import Employee
 from app.schemas.auth.auth import (
+    ChangePasswordRequest,
     EmployeeLogin,
     EmployeeRegister,
     EmployeeResponse,
+    ForgotPasswordRequest,
     LoginResponse,
     LogoutRequest,
     LogoutResponse,
+    MessageResponse,
 )
 from app.services.auth.auth import employee_auth_service
+from app.services.auth.password import password_service
 
 router = APIRouter()
 
@@ -87,3 +91,31 @@ async def employee_logout(
         employee_code=employee_code,
     )
     return employee_auth_service.logout(employee_code=employee_code)
+
+
+@router.post("/forgot-password", response_model=MessageResponse)
+def forgot_password(
+    payload: ForgotPasswordRequest,
+    db: Session = Depends(get_db),
+) -> MessageResponse:
+    return MessageResponse(
+        **password_service.forgot_password(
+            db=db,
+            employee_code=payload.employee_code,
+        )
+    )
+
+
+@router.post("/change-password", response_model=MessageResponse)
+def change_password(
+    payload: ChangePasswordRequest,
+    db: Session = Depends(get_db),
+) -> MessageResponse:
+    return MessageResponse(
+        **password_service.change_password(
+            db=db,
+            employee_code=payload.employee_code,
+            old_password=payload.old_password,
+            new_password=payload.new_password,
+        )
+    )

@@ -8,8 +8,8 @@ from typing import Any
 
 from fastapi import HTTPException
 
+from app.core.shared.config.settings import BACKEND_ROOT
 
-BACKEND_ROOT = Path(__file__).resolve().parents[3]
 CONFIG_ROOT = BACKEND_ROOT / "ai" / "model_settings"
 FACE_MODEL_ROOT = BACKEND_ROOT / "ai" / "models" / "face"
 MODEL_MANIFEST_PATH = FACE_MODEL_ROOT / "model_manifest.json"

@@ -48,3 +48,36 @@ CLIENT_AUTH_TICKET_VERIFY_FAILED: Final[str] = (
 CLIENT_AUTH_APP_REJECTED: Final[str] = (
     "Client application rejected (reason=invalid or inactive public key)"
 )
+CLIENT_AUTH_CALLBACK_ACCEPTED: Final[str] = (
+    "Client callback accepted (app={app_name}, origin={origin})"
+)
+CLIENT_AUTH_CALLBACK_REJECTED: Final[str] = (
+    "Client callback rejected (reason={reason}, public_key={public_key}, origin={origin})"
+)
+CLIENT_AUTH_CALLBACK_IP_BLOCKED: Final[str] = (
+    "Client callback IP blocked (retry_after_seconds={retry_after_seconds})"
+)
+CLIENT_AUTH_CALLBACK_IP_MANUALLY_BLOCKED: Final[str] = (
+    "Client callback IP manually blocked (ip_address={ip_address}, duration_minutes={duration_minutes})"
+)
+CLIENT_AUTH_CALLBACK_IP_UNBLOCKED: Final[str] = (
+    "Client callback IP unblocked (ip_address={ip_address})"
+)
+CLIENT_AUTH_CALLBACK_IP_REMOVED: Final[str] = (
+    "Client callback IP history removed (ip_address={ip_address})"
+)
+CLIENT_AUTH_APP_CREATED: Final[str] = (
+    "Client application created (app={app_name}, public_key={public_key})"
+)
+CLIENT_AUTH_APP_UPDATED: Final[str] = (
+    "Client application updated (app={app_name}, fields={fields})"
+)
+CLIENT_AUTH_SIGNING_KEY_ROTATED: Final[str] = (
+    "Client application signing key rotated (app={app_name})"
+)
+CLIENT_AUTH_SIGNING_KEY_REVEALED: Final[str] = (
+    "Client application signing key revealed (app={app_name})"
+)
+CLIENT_AUTH_APP_DELETED: Final[str] = (
+    "Client application deleted (app={app_name}, public_key={public_key})"
+)

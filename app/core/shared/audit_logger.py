@@ -8,9 +8,11 @@ import time
 from typing import Optional
 
 from fastapi import Request
+from starlette.requests import HTTPConnection
 
-from app.schemas.shared.audit_logs import AuditLogCreate
-from app.services.shared.audit_logs import AuditLogService
+from app.schemas.audit_logs import AuditLogCreate
+from app.services.audit_logs import AuditLogService
+from app.core.shared.config import settings
 
 _logger = logging.getLogger(__name__)
 _service = AuditLogService()
@@ -50,12 +52,23 @@ def clear_audit_context() -> None:
 # ─── Request context helpers ──────────────────────────────────────────────────
 
 
-def get_client_ip(request: Request) -> str:
-    """Extract the real client IP, respecting X-Forwarded-For proxies."""
-    forwarded = request.headers.get("X-Forwarded-For")
-    if forwarded:
-        return forwarded.split(",")[0].strip()
-    return request.client.host if request.client else "unknown"
+def get_client_ip(request: HTTPConnection) -> str:
+    """Extract the client IP without trusting forwarding headers from clients."""
+    peer_ip = request.client.host if request.client else "unknown"
+    trusted_proxies = {
+        value.strip()
+        for value in settings.TRUSTED_PROXY_IPS.split(",")
+        if value.strip()
+    }
+    if peer_ip in trusted_proxies:
+        for header_name in ("CF-Connecting-IP", "X-Forwarded-For"):
+            forwarded = request.headers.get(header_name)
+            if not forwarded:
+                continue
+            candidate = forwarded.split(",", 1)[0].strip()
+            if candidate:
+                return candidate
+    return peer_ip
 
 
 def get_geo_info(

@@ -11,7 +11,7 @@ from urllib.parse import quote_plus
 from sqlalchemy import create_engine
 from sqlalchemy.orm import declarative_base, sessionmaker
 
-from app.core.shared.config import settings
+from app.core.shared.config import BACKEND_ROOT, settings
 
 
 def _mysql_available() -> bool:
@@ -27,11 +27,7 @@ def _sqlite_path() -> str:
     """Resolve the SQLite path relative to the project root."""
     path = settings.SQLITE_PATH
     if not os.path.isabs(path):
-        # engine.py is at app/core/db/ → go up 4 levels to reach backEnd/
-        base = os.path.dirname(
-            os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-        )
-        path = os.path.join(base, path)
+        path = os.path.join(BACKEND_ROOT, path)
     return path
 
 
