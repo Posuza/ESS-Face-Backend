@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, String, func, text
+from sqlalchemy import Boolean, DateTime, Integer, String, func, text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.shared.orm import Base
@@ -46,13 +46,13 @@ class AuthAppRegistry(Base):
         default=func.now(),
         onupdate=func.now(),
     )
-    created_by: Mapped[str | None] = mapped_column(
+    created_by: Mapped[str] = mapped_column(
         String(6),
-        ForeignKey("employees.employee_code"),
-        nullable=True,
+        nullable=False,
+        default="ADM001",
+        server_default=text("'ADM001'"),
     )
     updated_by: Mapped[str | None] = mapped_column(
         String(6),
-        ForeignKey("employees.employee_code"),
         nullable=True,
     )
