@@ -7,11 +7,23 @@ from typing import Final
 ADMIN_EMPLOYEE_CREATE_SUCCESS: Final[str] = "Admin created employee (code={employee_code})"
 ADMIN_EMPLOYEE_UPDATE_SUCCESS: Final[str] = "Admin updated employee (code={employee_code})"
 ADMIN_EMPLOYEE_DELETE_SUCCESS: Final[str] = "Admin deleted employee (code={employee_code})"
+ADMIN_FACE_PROFILE_REPLACE_ATTEMPT: Final[str] = (
+    "Admin face profile replacement attempt (code={employee_code}, actor={actor_employee_code})"
+)
+ADMIN_FACE_PROFILE_REPLACE_FAILED: Final[str] = (
+    "Admin face profile replacement failed (code={employee_code}, actor={actor_employee_code}, status={status_code})"
+)
 ADMIN_FACE_PROFILE_REPLACE_SUCCESS: Final[str] = (
-    "Admin replaced employee face profile (code={employee_code})"
+    "Admin replaced employee face profile (code={employee_code}, actor={actor_employee_code})"
+)
+ADMIN_FACE_PROFILE_DELETE_ATTEMPT: Final[str] = (
+    "Admin face profile deletion attempt (code={employee_code}, actor={actor_employee_code})"
+)
+ADMIN_FACE_PROFILE_DELETE_FAILED: Final[str] = (
+    "Admin face profile deletion failed (code={employee_code}, actor={actor_employee_code}, status={status_code})"
 )
 ADMIN_FACE_PROFILE_DELETE_SUCCESS: Final[str] = (
-    "Admin deleted employee face profile (code={employee_code})"
+    "Admin deleted employee face profile (code={employee_code}, actor={actor_employee_code})"
 )
 
 # ADMIN — Common errors

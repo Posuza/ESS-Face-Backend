@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, Request, status
 from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 
@@ -55,9 +55,14 @@ def get_profile_image(
 )
 def verify_face(
     payload: FaceVerifyRequest,
+    http_request: Request,
     db: Session = Depends(get_db),
 ) -> FaceVerifyResponse:
-    result = face_verify_service.verify_face(db=db, payload=payload)
+    result = face_verify_service.verify_face(
+        db=db,
+        payload=payload,
+        request=http_request,
+    )
     return FaceVerifyResponse(**result)
 
 

@@ -271,6 +271,7 @@ def client_password_login(
 @router.post("/login/face", response_model=ClientFaceLoginResponse)
 def client_face_login(
     payload: ClientFaceLoginRequest,
+    http_request: Request,
     db: Session = Depends(get_db),
 ) -> ClientFaceLoginResponse:
     return ClientFaceLoginResponse(
@@ -278,6 +279,7 @@ def client_face_login(
             db=db,
             employee_code=payload.employee_code,
             image_data_url=payload.image_data_url,
+            request=http_request,
         )
     )
 
@@ -288,6 +290,7 @@ def client_face_login(
 )
 def recover_client_password_with_face(
     payload: ClientFaceLoginRequest,
+    http_request: Request,
     db: Session = Depends(get_db),
 ) -> ClientFacePasswordRecoveryResponse:
     return ClientFacePasswordRecoveryResponse(
@@ -295,6 +298,7 @@ def recover_client_password_with_face(
             db=db,
             employee_code=payload.employee_code,
             image_data_url=payload.image_data_url,
+            request=http_request,
         )
     )
 

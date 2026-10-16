@@ -44,6 +44,28 @@ LOGIN_FAILED_REASON: Final[str] = "{resource} Login attempt failed - {reason}"
 LOGIN_SUCCESS: Final[str] = "{resource} Login successful"
 
 # =========================================================
+# AUTH — Audit: Password management
+# =========================================================
+PASSWORD_RECOVERY_EMAIL_ATTEMPT: Final[str] = (
+    "Employee password recovery email attempt (code={employee_code})"
+)
+PASSWORD_RECOVERY_EMAIL_FAILED: Final[str] = (
+    "Employee password recovery email failed (code={employee_code}, status={status_code})"
+)
+PASSWORD_RECOVERY_EMAIL_SUCCESS: Final[str] = (
+    "Employee password recovery email sent (code={employee_code})"
+)
+PASSWORD_CHANGE_ATTEMPT: Final[str] = (
+    "Employee password change attempt (code={employee_code})"
+)
+PASSWORD_CHANGE_FAILED: Final[str] = (
+    "Employee password change failed (code={employee_code}, status={status_code})"
+)
+PASSWORD_CHANGE_SUCCESS: Final[str] = (
+    "Employee password changed successfully (code={employee_code})"
+)
+
+# =========================================================
 # AUTH — Audit:  Logout
 # =========================================================
 LOGOUT_ATTEMPT: Final[str] = "{resource} Attempt to Logout"

@@ -6,7 +6,16 @@ from sqlalchemy.orm import Session
 
 from app.api.dependencies import active_employee_required, roles_required
 from app.api.dependencies.base import _employee_has_role, _get_active_employee
+from app.core.shared.audit_logger import audit_logger
 from app.core.shared.db.session import get_db, get_session
+from app.core.sdk.registries import (
+    CLIENT_AUTH_APP_CREATE_ATTEMPT,
+    CLIENT_AUTH_APP_CREATE_FAILED,
+    CLIENT_AUTH_APP_DELETE_ATTEMPT,
+    CLIENT_AUTH_APP_DELETE_FAILED,
+    CLIENT_AUTH_APP_UPDATE_ATTEMPT,
+    CLIENT_AUTH_APP_UPDATE_FAILED,
+)
 from app.models.auth.employees import Employee
 from app.schemas.sdk.auth import (
     AppRegistrationCreate,
@@ -164,8 +173,15 @@ async def list_client_applications(
     db: Session = Depends(get_db),
     current_employee: Employee | None = None,
 ) -> list[AppRegistrationSummary]:
-    apps = client_auth_service.list_applications(db)
-    return [AppRegistrationSummary.model_validate(app) for app in apps]
+    audit_logger.log(action="Client application list read attempt")
+    try:
+        apps = client_auth_service.list_applications(db)
+        response = [AppRegistrationSummary.model_validate(app) for app in apps]
+    except Exception:
+        audit_logger.log(action="Client application list read failed")
+        raise
+    audit_logger.log(action="Client application list read successful")
+    return response
 
 
 @router.post(
@@ -182,11 +198,37 @@ async def register_client_application(
     current_employee: Employee | None = None,
 ) -> AppRegistrationSummary:
     assert current_employee is not None
-    app = client_auth_service.register_application(
-        db,
-        payload,
-        current_employee.employee_code,
+    actor_code = current_employee.employee_code
+    audit_logger.log(
+        action=CLIENT_AUTH_APP_CREATE_ATTEMPT.format(
+            app_name=payload.app_name,
+            actor_employee_code=actor_code,
+        )
     )
+    try:
+        app = client_auth_service.register_application(
+            db,
+            payload,
+            actor_code,
+        )
+    except HTTPException as exc:
+        audit_logger.log(
+            action=CLIENT_AUTH_APP_CREATE_FAILED.format(
+                app_name=payload.app_name,
+                actor_employee_code=actor_code,
+                status_code=exc.status_code,
+            )
+        )
+        raise
+    except Exception:
+        audit_logger.log(
+            action=CLIENT_AUTH_APP_CREATE_FAILED.format(
+                app_name=payload.app_name,
+                actor_employee_code=actor_code,
+                status_code=500,
+            )
+        )
+        raise
     return AppRegistrationSummary.model_validate(app)
 
 
@@ -201,12 +243,38 @@ async def update_client_application(
     current_employee: Employee | None = None,
 ) -> AppRegistrationSummary:
     assert current_employee is not None
-    app = client_auth_service.update_application(
-        db,
-        app_registration_id,
-        payload,
-        current_employee.employee_code,
+    actor_code = current_employee.employee_code
+    audit_logger.log(
+        action=CLIENT_AUTH_APP_UPDATE_ATTEMPT.format(
+            app_registration_id=app_registration_id,
+            actor_employee_code=actor_code,
+        )
     )
+    try:
+        app = client_auth_service.update_application(
+            db,
+            app_registration_id,
+            payload,
+            actor_code,
+        )
+    except HTTPException as exc:
+        audit_logger.log(
+            action=CLIENT_AUTH_APP_UPDATE_FAILED.format(
+                app_registration_id=app_registration_id,
+                actor_employee_code=actor_code,
+                status_code=exc.status_code,
+            )
+        )
+        raise
+    except Exception:
+        audit_logger.log(
+            action=CLIENT_AUTH_APP_UPDATE_FAILED.format(
+                app_registration_id=app_registration_id,
+                actor_employee_code=actor_code,
+                status_code=500,
+            )
+        )
+        raise
     return AppRegistrationSummary.model_validate(app)
 
 
@@ -219,7 +287,38 @@ async def delete_client_application(
     db: Session = Depends(get_db),
     current_employee: Employee | None = None,
 ) -> dict[str, str]:
-    client_auth_service.delete_application(db, app_registration_id)
+    assert current_employee is not None
+    actor_code = current_employee.employee_code
+    audit_logger.log(
+        action=CLIENT_AUTH_APP_DELETE_ATTEMPT.format(
+            app_registration_id=app_registration_id,
+            actor_employee_code=actor_code,
+        )
+    )
+    try:
+        client_auth_service.delete_application(
+            db,
+            app_registration_id,
+            actor_code,
+        )
+    except HTTPException as exc:
+        audit_logger.log(
+            action=CLIENT_AUTH_APP_DELETE_FAILED.format(
+                app_registration_id=app_registration_id,
+                actor_employee_code=actor_code,
+                status_code=exc.status_code,
+            )
+        )
+        raise
+    except Exception:
+        audit_logger.log(
+            action=CLIENT_AUTH_APP_DELETE_FAILED.format(
+                app_registration_id=app_registration_id,
+                actor_employee_code=actor_code,
+                status_code=500,
+            )
+        )
+        raise
     return {"message": "Client application was deleted."}
 
 

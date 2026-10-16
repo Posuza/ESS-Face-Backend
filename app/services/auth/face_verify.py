@@ -10,7 +10,7 @@ from pathlib import Path
 
 import numpy as np
 import onnxruntime as ort
-from fastapi import HTTPException
+from fastapi import HTTPException, Request
 from PIL import Image, ImageOps
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -22,7 +22,7 @@ from app.core.shared.config.model_settings import (
     get_required_model_value,
     is_model_active,
 )
-from app.core.shared.audit_logger import audit_logger
+from app.core.shared.audit_logger import audit_logger, set_audit_context
 from app.core.shared.media_storage import (
     face_image_key,
     normalize_face_image_key,
@@ -30,6 +30,7 @@ from app.core.shared.media_storage import (
 )
 from app.core.auth.registries import (
     FACE_ENROLL_ATTEMPT,
+    FACE_ENROLL_FAILED,
     FACE_ENROLL_SUCCESS,
     FACE_ERROR_ACCOUNT_INACTIVE,
     FACE_ERROR_EMPLOYEE_NOT_FOUND,
@@ -40,6 +41,7 @@ from app.core.auth.registries import (
     FACE_LOOKUP_SUCCESS,
     FACE_PROFILE_IMAGE_VIEW_SUCCESS,
     FACE_VERIFY_ATTEMPT,
+    FACE_VERIFY_ERROR,
     FACE_VERIFY_FAILED,
     FACE_VERIFY_SUCCESS,
 )
@@ -686,60 +688,143 @@ class FaceVerifyService:
     @staticmethod
     def enroll_face(db: Session, payload: FaceEnrollRequest) -> Employee:
         code = payload.employee_code.strip()
-        audit_logger.log(action=FACE_ENROLL_ATTEMPT.format(employee_code=code))
-        employee = FaceVerifyService.get_employee(db, code)
-        image = _decode(payload.image_data_url)
-
-        # Validate the registration photo without generating an ArcFace embedding.
-        # The reference image is stored and embeddings are generated later during verification.
-        _validate_face(image, "register")
-        previous_image = employee.profile_image_path
-        image_key, backup_path = _save_image(code, image)
-
-        employee.profile_image_path = image_key
-        employee.profile_image_updated_at = datetime.now()
-        employee.updated_by = payload.created_by or employee.employee_code
+        actor_code = payload.created_by or code
+        image_key = None
+        backup_path = None
+        audit_logger.log(
+            action=FACE_ENROLL_ATTEMPT.format(
+                employee_code=code,
+                actor_employee_code=actor_code,
+            )
+        )
         try:
+            employee = FaceVerifyService.get_employee(db, code)
+            image = _decode(payload.image_data_url)
+
+            # Validate the registration photo without generating an ArcFace embedding.
+            # The reference image is stored and embeddings are generated later during verification.
+            _validate_face(image, "register")
+            previous_image = employee.profile_image_path
+            image_key, backup_path = _save_image(code, image)
+
+            employee.profile_image_path = image_key
+            employee.profile_image_updated_at = datetime.now()
+            employee.updated_by = actor_code
             db.commit()
+        except HTTPException as exc:
+            db.rollback()
+            audit_logger.log(
+                action=FACE_ENROLL_FAILED.format(
+                    employee_code=code,
+                    actor_employee_code=actor_code,
+                    status_code=exc.status_code,
+                    reason="validation_error",
+                )
+            )
+            raise
         except Exception:
             db.rollback()
-            _restore_replaced_image(image_key, backup_path)
+            if image_key is not None:
+                _restore_replaced_image(image_key, backup_path)
+            audit_logger.log(
+                action=FACE_ENROLL_FAILED.format(
+                    employee_code=code,
+                    actor_employee_code=actor_code,
+                    status_code=500,
+                    reason="internal_error",
+                )
+            )
             raise
 
         _discard_image_backup(backup_path)
         if previous_image and normalize_face_image_key(previous_image) != image_key:
             _delete_stored_image(previous_image)
         db.refresh(employee)
-        audit_logger.log(action=FACE_ENROLL_SUCCESS.format(employee_code=code))
+        audit_logger.log(
+            action=FACE_ENROLL_SUCCESS.format(
+                employee_code=code,
+                actor_employee_code=actor_code,
+            )
+        )
         return employee
 
     @staticmethod
-    def verify_face(db: Session, payload: FaceVerifyRequest) -> dict[str, object]:
+    def verify_face(
+        db: Session,
+        payload: FaceVerifyRequest,
+        request: Request | None = None,
+    ) -> dict[str, object]:
         code = payload.employee_code.strip()
+        if request:
+            known_employee = db.execute(
+                select(Employee).where(Employee.employee_code == code)
+            ).scalar_one_or_none()
+            if known_employee:
+                set_audit_context(
+                    request=request,
+                    user_name=(
+                        f"{known_employee.first_name} {known_employee.last_name}".strip()
+                        or known_employee.employee_code
+                    ),
+                    employee_code=known_employee.employee_code,
+                )
         audit_logger.log(action=FACE_VERIFY_ATTEMPT.format(employee_code=code))
-        _rate(code)
-        employee = FaceVerifyService.get_employee(db, code)
         try:
-            reference_image = resolve_face_image_path(_reference_image(employee))
-        except ValueError as exc:
-            raise HTTPException(
-                status_code=500, detail=FACE_ERROR_INVALID_IMAGE_LOCATION
-            ) from exc
+            _rate(code)
+            employee = FaceVerifyService.get_employee(db, code)
+            if request:
+                set_audit_context(
+                    request=request,
+                    user_name=f"{employee.first_name} {employee.last_name}".strip()
+                    or employee.employee_code,
+                    employee_code=employee.employee_code,
+                )
+            try:
+                reference_image = resolve_face_image_path(_reference_image(employee))
+            except ValueError as exc:
+                raise HTTPException(
+                    status_code=500,
+                    detail=FACE_ERROR_INVALID_IMAGE_LOCATION,
+                ) from exc
+            incoming = _embedding(_decode(payload.image_data_url), "verify")
+            # Stored reference was captured under registration rules.
+            stored = _embedding(_load_image(reference_image), "register")
 
-        incoming = _embedding(_decode(payload.image_data_url), "verify")
-        # Stored reference was captured under registration rules.
-        stored = _embedding(_load_image(reference_image), "register")
-
-        # Both vectors are L2-normalized, so dot product == cosine similarity.
-        score = float(np.dot(stored, incoming))
-        threshold = float(
-            get_required_model_value(
-                "backend_models",
-                "arcface_recognizer",
-                "cosine_threshold",
-                mode="verify",
+            # Both vectors are L2-normalized, so dot product == cosine similarity.
+            score = float(np.dot(stored, incoming))
+            threshold = float(
+                get_required_model_value(
+                    "backend_models",
+                    "arcface_recognizer",
+                    "cosine_threshold",
+                    mode="verify",
+                )
             )
-        )
+        except HTTPException as exc:
+            reason = {
+                400: "invalid_face_input",
+                403: "account_inactive",
+                404: "employee_or_reference_not_found",
+                429: "rate_limited",
+            }.get(exc.status_code, "face_processing_error")
+            audit_logger.log(
+                action=FACE_VERIFY_ERROR.format(
+                    employee_code=code,
+                    status_code=exc.status_code,
+                    reason=reason,
+                )
+            )
+            raise
+        except Exception:
+            audit_logger.log(
+                action=FACE_VERIFY_ERROR.format(
+                    employee_code=code,
+                    status_code=500,
+                    reason="internal_error",
+                )
+            )
+            raise
+
         is_match = score >= threshold
         audit_logger.log(
             action=(

@@ -25,6 +25,7 @@ from app.core.sdk.registries import (
     CLIENT_AUTH_LOGIN_SUCCESS,
     CLIENT_AUTH_LOGOUT,
     CLIENT_AUTH_PASSWORD_LOGIN_ATTEMPT,
+    CLIENT_AUTH_PASSWORD_LOGIN_FAILED,
     CLIENT_AUTH_PASSWORD_LOGIN_SUCCESS,
     CLIENT_AUTH_PASSWORD_RECOVERY_ATTEMPT,
     CLIENT_AUTH_PASSWORD_RECOVERY_FAILED,
@@ -120,6 +121,7 @@ class ClientAuthService:
             action=CLIENT_AUTH_APP_CREATED.format(
                 app_name=app.app_name,
                 public_key=app.public_key,
+                actor_employee_code=actor_employee_code,
             )
         )
         return app
@@ -175,6 +177,7 @@ class ClientAuthService:
             action=CLIENT_AUTH_APP_UPDATED.format(
                 app_name=app.app_name,
                 fields=",".join(sorted(changes)),
+                actor_employee_code=actor_employee_code,
             )
         )
         return app
@@ -213,6 +216,7 @@ class ClientAuthService:
         cls,
         db: Session,
         app_registration_id: int,
+        actor_employee_code: str,
     ) -> None:
         app = cls._application_by_id(db, app_registration_id)
         app_name = app.app_name
@@ -223,6 +227,7 @@ class ClientAuthService:
             action=CLIENT_AUTH_APP_DELETED.format(
                 app_name=app_name,
                 public_key=public_key,
+                actor_employee_code=actor_employee_code,
             )
         )
 
@@ -448,6 +453,23 @@ class ClientAuthService:
             employee_code=employee.employee_code,
         )
 
+    @classmethod
+    def _set_known_employee_audit_context(
+        cls,
+        db: Session,
+        employee_code: str,
+        request: Request | None,
+    ) -> None:
+        if request is None:
+            return
+        employee = (
+            db.query(Employee)
+            .filter(Employee.employee_code == employee_code)
+            .first()
+        )
+        if employee:
+            cls._set_employee_audit_context(request, employee)
+
     @staticmethod
     def _log_client_login(
         app: AuthAppRegistry,
@@ -486,6 +508,10 @@ class ClientAuthService:
             db, public_key, return_to, request
         )
         code = employee_code.strip().upper()
+        cls._set_known_employee_audit_context(db, code, request)
+        audit_logger.log(
+            action=f"Client login attempt (app={app.app_name}, method=password, code={code})"
+        )
         try:
             employee = employee_auth_service.authenticate_employee(
                 db=db,
@@ -493,11 +519,15 @@ class ClientAuthService:
                 password=password,
                 request=request,
             )
+            response = cls._ticket_response(app, employee.employee_code)
         except HTTPException as exc:
             cls._log_client_login(app, "password", code, exc.status_code)
             raise
+        except Exception:
+            cls._log_client_login(app, "password", code, 500)
+            raise
         cls._log_client_login(app, "password", employee.employee_code)
-        return cls._ticket_response(app, employee.employee_code)
+        return response
 
     @classmethod
     def face_ticket(
@@ -513,6 +543,10 @@ class ClientAuthService:
             db, public_key, return_to, request
         )
         code = employee_code.strip().upper()
+        cls._set_known_employee_audit_context(db, code, request)
+        audit_logger.log(
+            action=f"Client login attempt (app={app.app_name}, method=face, code={code})"
+        )
         try:
             employee = face_verify_service.get_employee(db, code)
             cls._set_employee_audit_context(request, employee)
@@ -528,11 +562,15 @@ class ClientAuthService:
                     status_code=status.HTTP_401_UNAUTHORIZED,
                     detail="Employee face verification failed.",
                 )
+            response = cls._ticket_response(app, code)
         except HTTPException as exc:
             cls._log_client_login(app, "face", code, exc.status_code)
             raise
+        except Exception:
+            cls._log_client_login(app, "face", code, 500)
+            raise
         cls._log_client_login(app, "face", employee.employee_code)
-        return cls._ticket_response(app, code)
+        return response
 
     @classmethod
     def verify_ticket(
@@ -608,15 +646,33 @@ class ClientAuthService:
         request: Request | None = None,
     ) -> dict:
         code = employee_code.strip().upper()
+        ClientAuthService._set_known_employee_audit_context(db, code, request)
         audit_logger.log(
             action=CLIENT_AUTH_PASSWORD_LOGIN_ATTEMPT.format(employee_code=code)
         )
-        employee = employee_auth_service.authenticate_employee(
-            db=db,
-            employee_code=code,
-            password=password,
-            request=request,
-        )
+        try:
+            employee = employee_auth_service.authenticate_employee(
+                db=db,
+                employee_code=code,
+                password=password,
+                request=request,
+            )
+        except HTTPException as exc:
+            audit_logger.log(
+                action=CLIENT_AUTH_PASSWORD_LOGIN_FAILED.format(
+                    employee_code=code,
+                    status_code=exc.status_code,
+                )
+            )
+            raise
+        except Exception:
+            audit_logger.log(
+                action=CLIENT_AUTH_PASSWORD_LOGIN_FAILED.format(
+                    employee_code=code,
+                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                )
+            )
+            raise
         response = employee_auth_service.build_login_response(db, employee)
         audit_logger.log(
             action=CLIENT_AUTH_PASSWORD_LOGIN_SUCCESS.format(employee_code=code)
@@ -624,22 +680,52 @@ class ClientAuthService:
         return response
 
     @staticmethod
-    def face_login(db: Session, employee_code: str, image_data_url: str) -> dict:
+    def face_login(
+        db: Session,
+        employee_code: str,
+        image_data_url: str,
+        request: Request | None = None,
+    ) -> dict:
         code = employee_code.strip().upper()
+        ClientAuthService._set_known_employee_audit_context(db, code, request)
         audit_logger.log(
             action=CLIENT_AUTH_FACE_LOGIN_ATTEMPT.format(employee_code=code)
         )
-        result = face_verify_service.verify_face(
-            db=db,
-            payload=FaceVerifyRequest(
-                employee_code=code,
-                image_data_url=image_data_url,
-            ),
-        )
+        try:
+            result = face_verify_service.verify_face(
+                db=db,
+                payload=FaceVerifyRequest(
+                    employee_code=code,
+                    image_data_url=image_data_url,
+                ),
+                request=request,
+            )
+        except HTTPException as exc:
+            audit_logger.log(
+                action=CLIENT_AUTH_FACE_LOGIN_FAILED.format(
+                    employee_code=code,
+                    status_code=exc.status_code,
+                    reason="verification_error",
+                )
+            )
+            raise
+        except Exception:
+            audit_logger.log(
+                action=CLIENT_AUTH_FACE_LOGIN_FAILED.format(
+                    employee_code=code,
+                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    reason="internal_error",
+                )
+            )
+            raise
 
         if not result["is_match"]:
             audit_logger.log(
-                action=CLIENT_AUTH_FACE_LOGIN_FAILED.format(employee_code=code)
+                action=CLIENT_AUTH_FACE_LOGIN_FAILED.format(
+                    employee_code=code,
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    reason="face_not_matched",
+                )
             )
             return {**result, "employee": None}
 
@@ -655,22 +741,48 @@ class ClientAuthService:
         db: Session,
         employee_code: str,
         image_data_url: str,
+        request: Request | None = None,
     ) -> dict:
         code = employee_code.strip().upper()
+        ClientAuthService._set_known_employee_audit_context(db, code, request)
         audit_logger.log(
             action=CLIENT_AUTH_PASSWORD_RECOVERY_ATTEMPT.format(employee_code=code)
         )
-        result = face_verify_service.verify_face(
-            db=db,
-            payload=FaceVerifyRequest(
-                employee_code=code,
-                image_data_url=image_data_url,
-            ),
-        )
+        try:
+            result = face_verify_service.verify_face(
+                db=db,
+                payload=FaceVerifyRequest(
+                    employee_code=code,
+                    image_data_url=image_data_url,
+                ),
+                request=request,
+            )
+        except HTTPException as exc:
+            audit_logger.log(
+                action=CLIENT_AUTH_PASSWORD_RECOVERY_FAILED.format(
+                    employee_code=code,
+                    status_code=exc.status_code,
+                    reason="verification_error",
+                )
+            )
+            raise
+        except Exception:
+            audit_logger.log(
+                action=CLIENT_AUTH_PASSWORD_RECOVERY_FAILED.format(
+                    employee_code=code,
+                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    reason="internal_error",
+                )
+            )
+            raise
 
         if not result["is_match"]:
             audit_logger.log(
-                action=CLIENT_AUTH_PASSWORD_RECOVERY_FAILED.format(employee_code=code)
+                action=CLIENT_AUTH_PASSWORD_RECOVERY_FAILED.format(
+                    employee_code=code,
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    reason="face_not_matched",
+                )
             )
             return {**result, "password": None}
 
@@ -678,7 +790,11 @@ class ClientAuthService:
         password = employee.password or ""
         if len(password) != 6 or not password.isdigit():
             audit_logger.log(
-                action=CLIENT_AUTH_PASSWORD_RECOVERY_FAILED.format(employee_code=code)
+                action=CLIENT_AUTH_PASSWORD_RECOVERY_FAILED.format(
+                    employee_code=code,
+                    status_code=status.HTTP_409_CONFLICT,
+                    reason="invalid_stored_password",
+                )
             )
             return {
                 **result,

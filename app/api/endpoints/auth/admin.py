@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Literal
 
-from fastapi import APIRouter, Depends, Query, Request, Response, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response, status
 from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 
@@ -31,7 +31,11 @@ from app.schemas.auth.admin import (
     ModelSettingsUpdate,
 )
 from app.schemas.auth.face_verify import FaceEnrollRequest, FaceEnrollResponse
-from app.core.auth.registries import ADMIN_FACE_PROFILE_REPLACE_SUCCESS
+from app.core.auth.registries import (
+    ADMIN_FACE_PROFILE_REPLACE_ATTEMPT,
+    ADMIN_FACE_PROFILE_REPLACE_FAILED,
+    ADMIN_FACE_PROFILE_REPLACE_SUCCESS,
+)
 from app.services.auth.admin import admin_employee_service
 from app.services.auth.face_verify import face_verify_service
 
@@ -249,14 +253,43 @@ async def replace_user_face_profile(
     db: Session = Depends(get_db),
     current_employee: Employee | None = None,
 ):
-    request = FaceEnrollRequest(
-        employee_code=employee_code,
-        image_data_url=payload.get("image_data_url", ""),
-        created_by=current_employee.employee_code,
-    )
-    employee = face_verify_service.enroll_face(db, request)
+    actor_code = current_employee.employee_code
     audit_logger.log(
-        action=ADMIN_FACE_PROFILE_REPLACE_SUCCESS.format(employee_code=employee_code)
+        action=ADMIN_FACE_PROFILE_REPLACE_ATTEMPT.format(
+            employee_code=employee_code,
+            actor_employee_code=actor_code,
+        )
+    )
+    try:
+        request = FaceEnrollRequest(
+            employee_code=employee_code,
+            image_data_url=payload.get("image_data_url", ""),
+            created_by=actor_code,
+        )
+        employee = face_verify_service.enroll_face(db, request)
+    except HTTPException as exc:
+        audit_logger.log(
+            action=ADMIN_FACE_PROFILE_REPLACE_FAILED.format(
+                employee_code=employee_code,
+                actor_employee_code=actor_code,
+                status_code=exc.status_code,
+            )
+        )
+        raise
+    except Exception:
+        audit_logger.log(
+            action=ADMIN_FACE_PROFILE_REPLACE_FAILED.format(
+                employee_code=employee_code,
+                actor_employee_code=actor_code,
+                status_code=500,
+            )
+        )
+        raise
+    audit_logger.log(
+        action=ADMIN_FACE_PROFILE_REPLACE_SUCCESS.format(
+            employee_code=employee_code,
+            actor_employee_code=actor_code,
+        )
     )
     return FaceEnrollResponse.model_validate(employee)
 

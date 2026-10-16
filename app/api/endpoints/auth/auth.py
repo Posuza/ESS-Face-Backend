@@ -96,12 +96,14 @@ async def employee_logout(
 @router.post("/forgot-password", response_model=MessageResponse)
 def forgot_password(
     payload: ForgotPasswordRequest,
+    http_request: Request,
     db: Session = Depends(get_db),
 ) -> MessageResponse:
     return MessageResponse(
         **password_service.forgot_password(
             db=db,
             employee_code=payload.employee_code,
+            request=http_request,
         )
     )
 
@@ -109,6 +111,7 @@ def forgot_password(
 @router.post("/change-password", response_model=MessageResponse)
 def change_password(
     payload: ChangePasswordRequest,
+    http_request: Request,
     db: Session = Depends(get_db),
 ) -> MessageResponse:
     return MessageResponse(
@@ -117,5 +120,6 @@ def change_password(
             employee_code=payload.employee_code,
             old_password=payload.old_password,
             new_password=payload.new_password,
+            request=http_request,
         )
     )

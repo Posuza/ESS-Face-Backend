@@ -9,14 +9,24 @@ FACE_LOOKUP_SUCCESS: Final[str] = "Employee face lookup successful (code={employ
 FACE_PROFILE_IMAGE_VIEW_SUCCESS: Final[str] = (
     "Employee face profile image viewed (code={employee_code})"
 )
-FACE_ENROLL_ATTEMPT: Final[str] = "Employee face enrollment attempt (code={employee_code})"
-FACE_ENROLL_SUCCESS: Final[str] = "Employee face profile enrolled (code={employee_code})"
+FACE_ENROLL_ATTEMPT: Final[str] = (
+    "Employee face enrollment attempt (code={employee_code}, actor={actor_employee_code})"
+)
+FACE_ENROLL_SUCCESS: Final[str] = (
+    "Employee face profile enrolled (code={employee_code}, actor={actor_employee_code})"
+)
+FACE_ENROLL_FAILED: Final[str] = (
+    "Employee face enrollment failed (code={employee_code}, actor={actor_employee_code}, status={status_code}, reason={reason})"
+)
 FACE_VERIFY_ATTEMPT: Final[str] = "Employee face verification attempt (code={employee_code})"
 FACE_VERIFY_SUCCESS: Final[str] = (
     "Employee face verification successful (code={employee_code}, score={score}, threshold={threshold})"
 )
 FACE_VERIFY_FAILED: Final[str] = (
     "Employee face verification failed (code={employee_code}, score={score}, threshold={threshold})"
+)
+FACE_VERIFY_ERROR: Final[str] = (
+    "Employee face verification failed (code={employee_code}, status={status_code}, reason={reason})"
 )
 
 # FACE — Common errors

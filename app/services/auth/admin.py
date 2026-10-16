@@ -23,6 +23,8 @@ from app.core.auth.registries import (
     ADMIN_ERROR_EMPLOYEE_NOT_FOUND,
     ADMIN_ERROR_EMPLOYEE_REFERENCED,
     ADMIN_ERROR_FACE_PROFILE_NOT_FOUND,
+    ADMIN_FACE_PROFILE_DELETE_ATTEMPT,
+    ADMIN_FACE_PROFILE_DELETE_FAILED,
     ADMIN_FACE_PROFILE_DELETE_SUCCESS,
 )
 from app.models.auth.departments import Department
@@ -345,21 +347,54 @@ class AdminEmployeeService:
 
     @staticmethod
     def delete_face_profile(db: Session, employee_code: str, actor_code: str) -> None:
-        employee = _employee_or_404(db, employee_code)
-        if not employee.profile_image_path:
-            raise HTTPException(status_code=404, detail=ADMIN_ERROR_FACE_PROFILE_NOT_FOUND)
+        code = employee_code.strip()
+        audit_logger.log(
+            action=ADMIN_FACE_PROFILE_DELETE_ATTEMPT.format(
+                employee_code=code,
+                actor_employee_code=actor_code,
+            )
+        )
         try:
-            image_path = resolve_face_image_path(employee.profile_image_path)
-        except ValueError:
-            image_path = None
-        employee.profile_image_path = None
-        employee.profile_image_updated_at = None
-        employee.updated_by = actor_code
-        db.commit()
+            employee = _employee_or_404(db, code)
+            if not employee.profile_image_path:
+                raise HTTPException(
+                    status_code=404,
+                    detail=ADMIN_ERROR_FACE_PROFILE_NOT_FOUND,
+                )
+            try:
+                image_path = resolve_face_image_path(employee.profile_image_path)
+            except ValueError:
+                image_path = None
+            employee.profile_image_path = None
+            employee.profile_image_updated_at = None
+            employee.updated_by = actor_code
+            db.commit()
+        except HTTPException as exc:
+            audit_logger.log(
+                action=ADMIN_FACE_PROFILE_DELETE_FAILED.format(
+                    employee_code=code,
+                    actor_employee_code=actor_code,
+                    status_code=exc.status_code,
+                )
+            )
+            raise
+        except Exception:
+            db.rollback()
+            audit_logger.log(
+                action=ADMIN_FACE_PROFILE_DELETE_FAILED.format(
+                    employee_code=code,
+                    actor_employee_code=actor_code,
+                    status_code=500,
+                )
+            )
+            raise
         if image_path is not None:
             image_path.unlink(missing_ok=True)
         audit_logger.log(
-            action=ADMIN_FACE_PROFILE_DELETE_SUCCESS.format(employee_code=employee_code)
+            action=ADMIN_FACE_PROFILE_DELETE_SUCCESS.format(
+                employee_code=code,
+                actor_employee_code=actor_code,
+            )
         )
 
     @staticmethod

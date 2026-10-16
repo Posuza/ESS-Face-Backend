@@ -122,6 +122,15 @@ refuses to write into non-empty target tables. To deliberately delete and
 replace that selected data, run it with `--replace` after backing up MySQL.
 
 ### Deployment
+- Authentication and recovery services record attempts and outcomes for password
+  login, face verification, email recovery, face recovery, and password changes.
+  Face enrollment and administrator face replacement/removal record the target
+  employee and actor code; client application list/create/update/delete actions
+  also produce audit events. Passwords, tickets, private keys, and image payloads
+  are not included in these events. Employee identities on unauthenticated
+  attempts describe the account being attempted, not proof of authentication.
+  Browser-only validation and requests rejected before service execution are
+  outside this service-level audit coverage.
 - Backend startup safely creates the `auth_app_registry` and
   `auth_callback_ip_limits` tables when an upgraded database does not have
   them yet. Existing tables and rows are preserved.
